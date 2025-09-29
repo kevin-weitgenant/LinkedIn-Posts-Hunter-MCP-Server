@@ -14,7 +14,7 @@ import {
   handleLinkedInClearAuth 
 } from './tools/authenticate.js';
 import { handleLinkedInSearchPosts } from './tools/search-posts.js';
-import { startCsvViewer } from './tools/start-csv-viewer.js';
+import { startCsvViewer } from './tools/start-csv-viewer/index.js';
 import { listSearchResources, readSearchResource } from './utils/resource-storage.js';
 
 // Initialize MCP server

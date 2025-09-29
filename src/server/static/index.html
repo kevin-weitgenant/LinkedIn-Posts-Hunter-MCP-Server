@@ -5,29 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LinkedIn CSV Viewer</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .editable-cell {
-            transition: background-color 0.2s ease;
-        }
-        .editable-cell:hover {
-            background-color: #f3f4f6;
-            cursor: text;
-        }
-        .cell-editor {
-            width: 100%;
-            border: 2px solid #3b82f6;
-            border-radius: 4px;
-            padding: 4px 8px;
-            font-size: inherit;
-            font-family: inherit;
-        }
-        .modified {
-            background-color: #fef3c7 !important;
-        }
-        .live-indicator {
-            animation: pulse 2s infinite;
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body class="bg-gray-50 min-h-screen">
     <div class="container mx-auto px-4 py-8">
@@ -54,11 +32,11 @@
                     </select>
                 </div>
                 <div class="flex space-x-2">
-                    <button id="loadBtn" onclick="loadCsv()" 
+                    <button id="loadBtn" 
                             class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed">
                         Load CSV
                     </button>
-                    <button id="refreshBtn" onclick="refreshCsvList()" 
+                    <button id="refreshBtn" 
                             class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
                         Refresh List
                     </button>
@@ -80,7 +58,7 @@
 
             <div id="errorMessage" class="hidden p-6 text-center text-red-600">
                 <p id="errorText"></p>
-                <button onclick="location.reload()" class="mt-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
+                <button class="mt-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
                     Reload Page
                 </button>
             </div>
@@ -101,11 +79,11 @@
                 <div class="p-4 border-t border-gray-200 bg-gray-50">
                     <div class="flex justify-between items-center">
                         <div class="flex space-x-2">
-                            <button id="addRowBtn" onclick="addNewRow()" 
+                            <button id="addRowBtn" 
                                     class="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
                                 Add Row
                             </button>
-                            <button id="saveBtn" onclick="saveChanges()" disabled
+                            <button id="saveBtn" disabled
                                     class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
                                 Save Changes
                             </button>
@@ -147,6 +125,6 @@
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <script src="app.js" type="module"></script>
 </body>
 </html>
