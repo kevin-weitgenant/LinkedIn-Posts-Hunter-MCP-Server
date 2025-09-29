@@ -175,11 +175,12 @@ export const performAuthentication = async (): Promise<{
     
     await navigateToLogin(page);
     
-    console.log("Please complete LinkedIn login (including any 2FA). The browser window will close automatically once authentication is detected.");
+    // Browser window will guide the user through login
+    // Authentication will be detected automatically
     
     const { cleanup } = setupAuthDetection(page, context, async (reason) => {
       authReason = reason;
-      console.log(`Authentication successful! (${reason})`);
+      // Authentication successful
     });
     
     await waitForAuthentication(page);

@@ -197,4 +197,5 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 const transport = new StdioServerTransport();
 await server.connect(transport);
 
-console.error("LinkedIn Playwright MCP Server running...");
+// MCP servers communicate via JSON-RPC over stdin/stdout
+// Do not write anything to stdout or it will corrupt the protocol
