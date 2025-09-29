@@ -1,0 +1,21 @@
+{
+  "manifest_version": "0.2",
+  "name": "linkedin-playwright-mcp",
+  "version": "1.0.0",
+  "description": "LinkedIn MCP server with Playwright automation for authentication and post searching",
+  "author": {
+    "name": "kevin"
+  },
+  "server": {
+    "type": "node",
+    "entry_point": "build/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": [
+        "${__dirname}/build/index.js"
+      ],
+      "env": {}
+    }
+  },
+  "license": "ISC"
+}

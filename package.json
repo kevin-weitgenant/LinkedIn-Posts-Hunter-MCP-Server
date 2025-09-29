@@ -1,0 +1,34 @@
+{
+  "name": "linkedin-playwright-mcp",
+  "version": "1.0.0",
+  "description": "LinkedIn MCP server with Playwright automation for authentication and post searching",
+  "main": "build/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "start": "node build/index.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "auth:login": "tsx scripts/auth-login-save.ts",
+    "auth:run": "tsx scripts/run-with-auth.ts"
+  },
+  "keywords": [
+    "mcp",
+    "linkedin",
+    "playwright",
+    "automation"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.18.2",
+    "live-server": "^1.2.2",
+    "playwright": "^1.55.1"
+  },
+  "devDependencies": {
+    "@types/live-server": "^1.2.3",
+    "@types/node": "^24.5.2",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.2"
+  }
+}
