@@ -26,8 +26,11 @@ async function initializeApp() {
  * Setup event listeners
  */
 function setupEventListeners() {
+    // Tab switching
+    document.getElementById('tableViewTab').addEventListener('click', () => switchToTab('table'));
+    document.getElementById('screenshotsTab').addEventListener('click', () => switchToTab('screenshots'));
+
     // Button clicks
-    document.getElementById('refreshBtn').addEventListener('click', () => refreshData());
     document.getElementById('addRowBtn').addEventListener('click', addNewRow);
     document.getElementById('saveBtn').addEventListener('click', saveChanges);
 
@@ -48,19 +51,38 @@ function setupEventListeners() {
 }
 
 /**
- * Refresh the unified CSV data
+ * Switch between tabs
  */
-async function refreshData() {
-    if (state.hasUnsavedChanges && !confirm('You have unsaved changes. Refreshing will discard them. Continue?')) {
-        return;
-    }
+function switchToTab(tabName) {
+    // Update tab buttons
+    const tableTab = document.getElementById('tableViewTab');
+    const screenshotsTab = document.getElementById('screenshotsTab');
     
-    try {
-        setState({ hasUnsavedChanges: false });
-        document.getElementById('saveBtn').disabled = true;
-        await loadCsv(UNIFIED_CSV_FILENAME);
-        showStatus('Data refreshed successfully', 'success');
-    } catch (error) {
-        showError('Failed to refresh data: ' + error.message);
+    // Update tab content
+    const tableContent = document.getElementById('tableViewContent');
+    const screenshotsContent = document.getElementById('screenshotsViewContent');
+    
+    if (tabName === 'table') {
+        tableTab.classList.add('active', 'border-blue-500', 'text-blue-600');
+        tableTab.classList.remove('border-transparent', 'text-gray-500');
+        screenshotsTab.classList.remove('active', 'border-blue-500', 'text-blue-600');
+        screenshotsTab.classList.add('border-transparent', 'text-gray-500');
+        
+        tableContent.classList.add('active');
+        screenshotsContent.classList.remove('active');
+    } else if (tabName === 'screenshots') {
+        screenshotsTab.classList.add('active', 'border-blue-500', 'text-blue-600');
+        screenshotsTab.classList.remove('border-transparent', 'text-gray-500');
+        tableTab.classList.remove('active', 'border-blue-500', 'text-blue-600');
+        tableTab.classList.add('border-transparent', 'text-gray-500');
+        
+        screenshotsContent.classList.add('active');
+        tableContent.classList.remove('active');
+        
+        // Load screenshots when switching to screenshots tab
+        if (window.loadScreenshots) {
+            window.loadScreenshots();
+        }
     }
 }
+

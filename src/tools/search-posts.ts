@@ -1,6 +1,9 @@
 import { chromium, Browser, BrowserContext, Page } from 'playwright';
 import { loadAuthData, isAuthDataValid } from '../auth/storage.js';
 import { saveSearchResource } from '../utils/resource-storage.js';
+import { getScreenshotsPath } from '../utils/paths.js';
+import path from 'path';
+import fs from 'fs';
 
 export interface SearchPostsParams {
   keywords: string;
@@ -10,6 +13,7 @@ export interface SearchPostsParams {
 export interface PostResult {
   link: string;
   description: string;
+  screenshotPath?: string;
 }
 
 /**
@@ -94,7 +98,28 @@ const performSearch = async (
                 .join('\n\n')
           );
           
-          results[item.index] = { link: url, description };
+          // Capture screenshot of the post content
+          let screenshotPath: string | undefined;
+          try {
+            const screenshotsDir = getScreenshotsPath();
+            const timestamp = Date.now();
+            // Sanitize URN for filename (remove special characters)
+            const sanitizedUrn = item.urn.replace(/[^a-zA-Z0-9-_]/g, '_');
+            const filename = `post_${sanitizedUrn}_${timestamp}.png`;
+            const fullPath = path.join(screenshotsDir, filename);
+            
+            // Try to screenshot the specific post element
+            const postElement = await postPage.$('div.update-components-text.relative.update-components-update-v2__commentary');
+            if (postElement) {
+              await postElement.screenshot({ path: fullPath, type: 'png' });
+              screenshotPath = `screenshots/${filename}`;
+            }
+          } catch (screenshotError) {
+            // Log but don't fail - screenshot is optional
+            console.warn(`Failed to capture screenshot for ${item.urn}:`, screenshotError);
+          }
+          
+          results[item.index] = { link: url, description, screenshotPath };
         } catch (_) {
           results[item.index] = { link: url, description: '' };
         } finally {
@@ -221,7 +246,6 @@ export const handleLinkedInSearchPosts = async (params: SearchPostsParams) => {
 
 // Test execution - run this file directly with: npx tsx src/tools/search-posts.ts
 import { fileURLToPath } from 'url';
-import path from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const isMainModule = path.resolve(__filename) === path.resolve(process.argv[1]);

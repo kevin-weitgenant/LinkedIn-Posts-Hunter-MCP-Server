@@ -58,11 +58,19 @@ export const getSearchResourcesPath = (): string => {
 };
 
 /**
+ * Get the screenshots directory path
+ */
+export const getScreenshotsPath = (): string => {
+  return path.join(getResourcesPath(), 'screenshots');
+};
+
+/**
  * Ensure resource directories exist
  */
 export const ensureResourceDirectories = (): void => {
   const resourcesDir = getResourcesPath();
   const searchesDir = getSearchResourcesPath();
+  const screenshotsDir = getScreenshotsPath();
   
   if (!fs.existsSync(resourcesDir)) {
     fs.mkdirSync(resourcesDir, { recursive: true });
@@ -70,5 +78,9 @@ export const ensureResourceDirectories = (): void => {
   
   if (!fs.existsSync(searchesDir)) {
     fs.mkdirSync(searchesDir, { recursive: true });
+  }
+  
+  if (!fs.existsSync(screenshotsDir)) {
+    fs.mkdirSync(screenshotsDir, { recursive: true });
   }
 };

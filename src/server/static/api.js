@@ -122,3 +122,28 @@ export async function saveChanges() {
         showError(`Failed to save changes: ${error.message}`);
     }
 }
+
+/**
+ * Delete an entry from CSV by ID
+ */
+export async function deleteEntry(entryId) {
+    try {
+        const response = await fetch(`/api/entry/${encodeURIComponent(entryId)}`, {
+            method: 'DELETE',
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to delete entry');
+        }
+
+        // Reload CSV data if we're on the table view
+        if (state.currentCsvFile) {
+            await loadCsv(state.currentCsvFile);
+        }
+
+        return true;
+    } catch (error) {
+        throw error;
+    }
+}

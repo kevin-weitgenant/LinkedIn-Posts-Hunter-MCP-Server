@@ -2,7 +2,7 @@ import liveServer from 'live-server';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
-import { getSearchResourcesPath } from '../../utils/paths.js';
+import { getSearchResourcesPath, getScreenshotsPath } from '../../utils/paths.js';
 import {
   CsvViewerResult,
   MiddlewareRequest,
@@ -120,6 +120,99 @@ function handleSaveCsvRequest(req: MiddlewareRequest, res: MiddlewareResponse): 
 }
 
 /**
+ * Handle the /api/screenshots/:filename endpoint - serves screenshot images
+ */
+function handleScreenshotRequest(req: MiddlewareRequest, res: MiddlewareResponse): void {
+  try {
+    if (!req.url) {
+      throw new Error('Request URL not found');
+    }
+    const filename = decodeURIComponent(req.url.replace('/api/screenshots/', ''));
+    const screenshotsDir = getScreenshotsPath();
+    const filePath = path.join(screenshotsDir, filename);
+    
+    // Security check: ensure the file is within the screenshots directory
+    if (!validateFilePath(filePath, screenshotsDir)) {
+      res.writeHead(403);
+      res.end('Access denied');
+      return;
+    }
+    
+    if (!fs.existsSync(filePath)) {
+      res.writeHead(404);
+      res.end('Screenshot not found');
+      return;
+    }
+    
+    // Read and serve the image
+    const imageBuffer = fs.readFileSync(filePath);
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.writeHead(200);
+    res.end(imageBuffer);
+  } catch (error) {
+    res.writeHead(500);
+    res.end('Failed to load screenshot');
+  }
+}
+
+/**
+ * Handle DELETE /api/entry/:id endpoint - deletes an entry from CSV by ID
+ */
+function handleDeleteEntryRequest(req: MiddlewareRequest, res: MiddlewareResponse): void {
+  try {
+    if (!req.url) {
+      throw new Error('Request URL not found');
+    }
+    const id = decodeURIComponent(req.url.replace('/api/entry/', ''));
+    const searchDir = getSearchResourcesPath();
+    const filename = 'linkedin_searches.csv';
+    const filePath = path.join(searchDir, filename);
+    
+    if (!fs.existsSync(filePath)) {
+      res.writeHead(404);
+      res.end(JSON.stringify({ error: 'CSV file not found' }));
+      return;
+    }
+    
+    // Read and parse CSV
+    const csvContent = fs.readFileSync(filePath, 'utf8');
+    const lines = csvContent.split('\n');
+    
+    if (lines.length <= 1) {
+      res.writeHead(400);
+      res.end(JSON.stringify({ error: 'No entries to delete' }));
+      return;
+    }
+    
+    // Filter out the entry with matching ID
+    const header = lines[0];
+    const filteredLines = lines.slice(1).filter(line => {
+      if (!line.trim()) return false;
+      const firstComma = line.indexOf(',');
+      if (firstComma > 0) {
+        const lineId = line.substring(0, firstComma);
+        return lineId !== id;
+      }
+      return true;
+    });
+    
+    // Write back to file
+    const newContent = header + '\n' + filteredLines.join('\n');
+    fs.writeFileSync(filePath, newContent, 'utf8');
+    
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.writeHead(200);
+    res.end(JSON.stringify({ message: 'Entry deleted successfully' }));
+    
+  } catch (error) {
+    res.writeHead(500);
+    res.end(JSON.stringify({ error: 'Failed to delete entry' }));
+  }
+}
+
+/**
  * Create middleware function to handle API requests
  */
 function createApiMiddleware() {
@@ -137,6 +230,18 @@ function createApiMiddleware() {
       } else {
         handleCsvFileRequest(req, res);
       }
+      return;
+    }
+    
+    // Handle screenshot requests
+    if (req.url?.startsWith('/api/screenshots/')) {
+      handleScreenshotRequest(req, res);
+      return;
+    }
+    
+    // Handle delete entry requests
+    if (req.url?.startsWith('/api/entry/') && req.method === 'DELETE') {
+      handleDeleteEntryRequest(req, res);
       return;
     }
     

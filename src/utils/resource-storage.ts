@@ -22,14 +22,43 @@ const getUnifiedCsvFilename = (): string => {
 };
 
 /**
+ * Get the next available ID from existing CSV
+ */
+const getNextId = (csvContent: string): number => {
+  const lines = csvContent.split('\n').filter(line => line.trim());
+  
+  if (lines.length <= 1) {
+    return 1; // First entry
+  }
+  
+  let maxId = 0;
+  
+  // Skip header (line 0), parse IDs from remaining lines
+  for (let i = 1; i < lines.length; i++) {
+    const firstComma = lines[i].indexOf(',');
+    if (firstComma > 0) {
+      const idStr = lines[i].substring(0, firstComma);
+      const id = parseInt(idStr);
+      if (!isNaN(id) && id > maxId) {
+        maxId = id;
+      }
+    }
+  }
+  
+  return maxId + 1;
+};
+
+/**
  * Convert PostResult array to CSV rows (without headers)
  */
-const convertToCsvRows = (results: PostResult[], keywords: string, searchDate: string): string[] => {
-  return results.map((post) => {
+const convertToCsvRows = (results: PostResult[], keywords: string, searchDate: string, startId: number): string[] => {
+  return results.map((post, index) => {
+    const id = startId + index;
     const escapedKeywords = keywords.replace(/"/g, '""');
     const escapedLink = post.link.replace(/"/g, '""');
     const escapedDescription = post.description.replace(/"/g, '""');
-    return `"${escapedKeywords}","${escapedLink}","${escapedDescription}","${searchDate}"`;
+    const escapedScreenshotPath = (post.screenshotPath || '').replace(/"/g, '""');
+    return `${id},"${escapedKeywords}","${escapedLink}","${escapedDescription}","${searchDate}","${escapedScreenshotPath}"`;
   });
 };
 
@@ -43,8 +72,9 @@ const parseExistingCsv = (csvContent: string): Set<string> => {
   for (const line of lines) {
     if (!line.trim()) continue;
     
-    // Extract post_link (second column) - basic CSV parsing
-    const match = line.match(/"([^"]+)","([^"]+)",/);
+    // Extract post_link (third column after id) - basic CSV parsing
+    // Format: id,"keywords","link","description","date","screenshot_path"
+    const match = line.match(/^\d+,"([^"]+)","([^"]+)",/);
     if (match && match[2]) {
       existingLinks.add(match[2]);
     }
@@ -70,6 +100,7 @@ export const saveSearchResource = async (
   let existingLinks = new Set<string>();
   let fileExists = false;
   let totalPostsInFile = 0;
+  let nextId = 1;
   
   // Read existing CSV if it exists
   if (fs.existsSync(filePath)) {
@@ -77,19 +108,20 @@ export const saveSearchResource = async (
     const existingContent = fs.readFileSync(filePath, 'utf8');
     existingLinks = parseExistingCsv(existingContent);
     totalPostsInFile = existingLinks.size;
+    nextId = getNextId(existingContent);
   }
   
   // Filter out duplicate posts
   const newResults = results.filter(post => !existingLinks.has(post.link));
   const duplicatesSkipped = results.length - newResults.length;
   
-  // Convert new results to CSV rows
-  const newRows = convertToCsvRows(newResults, keywords, searchDate);
+  // Convert new results to CSV rows with IDs
+  const newRows = convertToCsvRows(newResults, keywords, searchDate, nextId);
   
   // Write or append to CSV file
   if (!fileExists) {
     // Create new file with headers
-    const headers = 'search_keywords,post_link,description,search_date\n';
+    const headers = 'id,search_keywords,post_link,description,search_date,screenshot_path\n';
     const csvContent = headers + newRows.join('\n') + '\n';
     fs.writeFileSync(filePath, csvContent, 'utf8');
   } else if (newRows.length > 0) {

@@ -14,6 +14,7 @@ import {
   handleLinkedInClearAuth 
 } from './tools/authenticate.js';
 import { handleLinkedInSearchPosts } from './tools/search-posts.js';
+import { handleLinkedInManageCsv } from './tools/csv-manager.js';
 import { startCsvViewer } from './tools/start-csv-viewer/index.js';
 import { listSearchResources, readSearchResource } from './utils/resource-storage.js';
 
@@ -93,6 +94,53 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           type: "object",
           properties: {},
           additionalProperties: false
+        },
+      },
+      {
+        name: "linkedin_manage_csv",
+        description: "Read, update, or delete entries from the LinkedIn search results CSV. Filters by ID, keywords, content, or date range. Only returns matching entries to minimize context.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            action: {
+              type: "string",
+              enum: ["read", "update", "delete"],
+              description: "Action to perform: 'read' to query entries, 'update' to modify entries, 'delete' to remove entries"
+            },
+            ids: {
+              type: "array",
+              items: { type: "number" },
+              description: "Filter by specific entry IDs (e.g., [1, 5, 10])"
+            },
+            search_text: {
+              type: "string",
+              description: "Search text to match in keywords or description fields"
+            },
+            date_from: {
+              type: "string",
+              description: "Filter entries from this date (ISO format: YYYY-MM-DD)"
+            },
+            date_to: {
+              type: "string",
+              description: "Filter entries until this date (ISO format: YYYY-MM-DD)"
+            },
+            limit: {
+              type: "number",
+              description: "Maximum number of entries to return (default: 10, max: 50)",
+              default: 10,
+              minimum: 1,
+              maximum: 50
+            },
+            new_description: {
+              type: "string",
+              description: "New description text (for update action only)"
+            },
+            new_keywords: {
+              type: "string",
+              description: "New keywords text (for update action only)"
+            }
+          },
+          required: ["action"]
         },
       }
     ],
@@ -179,6 +227,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             text: `CSV Viewer started successfully!\n\n${result.message}\n\nThe browser should have opened automatically. If not, visit: ${result.url}`
           }]
         };
+        
+      case "linkedin_manage_csv":
+        return await handleLinkedInManageCsv(params as any);
         
       default:
         throw new Error(`Unknown tool: ${name}`);
