@@ -1,12 +1,14 @@
 # LinkedIn Playwright MCP Server
 
-A Model Context Protocol (MCP) server that provides LinkedIn automation tools using Playwright. This server enables authentication management and post searching capabilities for LinkedIn through a clean functional API.
+A Model Context Protocol (MCP) server that provides LinkedIn automation tools using Playwright. This server enables authentication management, post searching, and a web-based CSV viewer for managing search results.
 
 ## Features
 
 - **System-wide Authentication**: Stores LinkedIn credentials in your system directory for reuse across sessions
 - **Interactive Authentication**: Handles complex login flows including 2FA
 - **Post Search**: Search LinkedIn posts with keywords and pagination
+- **CSV Viewer & Editor**: Web-based interface with live reload to view and edit search results
+- **MCP Resources**: Access search results as MCP resources for easy integration
 - **Functional Architecture**: Clean, testable functions without class boilerplate
 
 ## Available MCP Tools
@@ -29,6 +31,31 @@ Search LinkedIn posts with keywords and optional pagination.
 **Parameters:**
 - `keywords` (string, required): Search keywords or query (e.g., 'machine learning', '"AI engineer"')
 - `pagination` (number, optional): Number of scroll pages to load more results (default: 3, max: 10)
+
+**Output:**
+- Results are automatically saved as CSV files in `~/.linkedin-mcp/resources/searches/`
+- Each search creates a timestamped CSV file with post data
+
+### 5. `start_csv_viewer`
+Start a web-based CSV viewer and editor for LinkedIn search results with live reload functionality.
+
+**Features:**
+- Browse all saved LinkedIn search result CSV files
+- View and edit CSV data in a user-friendly table interface
+- Live reload: automatically refreshes when CSV files change
+- Edit cells directly in the browser
+- Save changes back to CSV files
+- Opens automatically in your default browser at `http://localhost:8080`
+
+## MCP Resources
+
+This server exposes LinkedIn search results as MCP resources that can be accessed by MCP clients:
+
+- **Resource Template**: `file:///.linkedin-mcp/resources/searches/{filename}`
+- **MIME Type**: `text/csv`
+- **Location**: All CSV files in `~/.linkedin-mcp/resources/searches/` are automatically available as resources
+
+Use the resource listing feature in your MCP client to browse available search results.
 
 ## Installation
 
@@ -58,7 +85,17 @@ npm run build
 }
 ```
 
-2. The server will be available with all four tools listed above.
+2. The server will be available with all five tools and resource access.
+
+### Packaging as Binary (Optional)
+
+Package the server as a standalone binary:
+
+```bash
+npm run mcpb
+```
+
+This creates a `linkedin-playwright-mcp.mcpb` file that can be distributed and used without Node.js installation.
 
 ### Development
 
@@ -80,6 +117,14 @@ Authentication credentials are stored system-wide:
 
 This ensures credentials persist across different projects and sessions.
 
+## Search Results Storage
+
+LinkedIn search results are saved as CSV files:
+- **Windows**: `%APPDATA%/linkedin-mcp/resources/searches/`
+- **macOS/Linux**: `~/.linkedin-mcp/resources/searches/`
+
+Files are named with timestamps (e.g., `linkedin_search_2025-09-30_143022.csv`) for easy tracking.
+
 ## Architecture
 
 The project uses a functional architecture with the following structure:
@@ -91,11 +136,33 @@ src/
 │   └── browser.ts       # Browser automation functions
 ├── tools/
 │   ├── authenticate.ts  # Authentication MCP tool
-│   └── search-posts.ts  # Search posts MCP tool
+│   ├── search-posts.ts  # Search posts MCP tool
+│   └── start-csv-viewer/
+│       ├── index.ts     # CSV viewer server
+│       ├── types.ts     # TypeScript types
+│       ├── constants.ts # Configuration constants
+│       └── util.ts      # Utility functions
+├── server/
+│   └── static/         # Static files for CSV viewer web UI
+│       ├── index.html
+│       ├── styles.css
+│       ├── app.js      # Main application logic
+│       ├── ui.js       # UI rendering
+│       ├── csv.js      # CSV parsing and editing
+│       ├── api.js      # API client
+│       └── state.js    # State management
 ├── utils/
-│   └── paths.ts         # System path utilities
-└── index.ts             # Main MCP server
+│   ├── paths.ts             # System path utilities
+│   └── resource-storage.ts  # MCP resource management
+└── index.ts                 # Main MCP server
 ```
+
+## Workflow Example
+
+1. **Authenticate**: Use `linkedin_authenticate` to log in to LinkedIn
+2. **Search**: Use `linkedin_search_posts` to find relevant posts (results saved as CSV)
+3. **View/Edit**: Use `start_csv_viewer` to open the web interface and review/edit results
+4. **Access as Resource**: Use MCP resource features to read CSV files programmatically
 
 ## Legacy Scripts
 
@@ -108,6 +175,23 @@ The original standalone scripts are still available:
 - Node.js 18+
 - Playwright (automatically installs browsers)
 - TypeScript 5+
+
+## Troubleshooting
+
+### CSV Viewer Not Opening
+- Ensure port 8080 is not in use by another application
+- Manually visit `http://localhost:8080` in your browser
+- Check that search results exist in the resources directory
+
+### Authentication Issues
+- Use `force_reauth: true` parameter to re-authenticate
+- Check system auth file permissions
+- Clear auth with `linkedin_clear_auth` and try again
+
+### Search Not Returning Results
+- Verify you're authenticated first with `linkedin_auth_status`
+- Try different search keywords
+- LinkedIn may rate-limit automated searches
 
 ## License
 
