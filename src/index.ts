@@ -9,7 +9,7 @@ import { handleLinkedInAuth } from './tools/authenticate.js';
 import { handleLinkedInSearchPosts } from './tools/search-posts.js';
 import { handleLinkedInManagePosts } from './tools/posts-manager.js';
 import { startPostViewer } from './tools/start-posts-viewer/index.js';
-import { startViteViewer } from './tools/start-vite-viewer.js';
+import { startViteViewer, stopViteViewer } from './tools/start-vite-viewer.js';
 
 // Initialize MCP server
 const server = new Server(
@@ -70,7 +70,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
-        name: "start visualization page",
+        name: "start_visualization_page",
         description: "Start a live server visualization page, showing the collected scraped data.",
         inputSchema: {
           type: "object",
@@ -141,6 +141,15 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           properties: {},
           additionalProperties: false
         },
+      },
+      {
+        name: "stop_vite_viewer",
+        description: "Stop the running Vite viewer server",
+        inputSchema: {
+          type: "object",
+          properties: {},
+          additionalProperties: false
+        },
       }
     ],
   };
@@ -158,7 +167,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "linkedin_search_posts":
         return await handleLinkedInSearchPosts(params as any);
         
-      case "start visualization page":
+      case "start_visualization_page":
         const result = await startPostViewer();
         return {
           content: [{
@@ -176,6 +185,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           content: [{
             type: "text",
             text: `Vite Viewer started successfully!\n\n${viteResult.message}\n\nThe browser should have opened automatically. If not, visit: ${viteResult.url}\n\nThis is a proof of concept - hot reload is enabled!`
+          }]
+        };
+        
+      case "stop_vite_viewer":
+        const stopResult = stopViteViewer();
+        return {
+          content: [{
+            type: "text",
+            text: stopResult.message
           }]
         };
         

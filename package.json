@@ -6,15 +6,17 @@
   "type": "module",
   "scripts": {
     "clean": "rimraf build",
-    "build": "tsc && npm run copy-client",
-    "copy-client": "xcopy src\\client-vite build\\client-vite /E /I /Y /Q",
+    "build": "npm run clean && tsc && npm run build-client && npm run copy-client",
+    "build-client": "cd src/client-vite && npm run build",
+    "copy-client": "xcopy src\\client-vite\\dist build\\client-vite\\dist /E /I /Y /Q",
     "pack": "npx @anthropic-ai/mcpb pack",
     "mcpb": "npm run clean && npm run build && npm run pack",
     "dev": "tsx src/index.ts",
     "start": "node build/index.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "auth:login": "tsx scripts/auth-login-save.ts",
-    "auth:run": "tsx scripts/run-with-auth.ts"
+    "auth:run": "tsx scripts/run-with-auth.ts",
+    "install:all": "npm install && cd src/client-vite && npm install && echo 'All dependencies(client vite included) installed successfully!'"
   },
   "keywords": [
     "mcp",
