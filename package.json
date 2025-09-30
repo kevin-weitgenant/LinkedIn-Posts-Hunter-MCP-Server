@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "clean": "rimraf build",
-    "build": "tsc",
+    "build": "tsc && npm run copy-client",
+    "copy-client": "xcopy src\\client-vite build\\client-vite /E /I /Y /Q",
     "pack": "npx @anthropic-ai/mcpb pack",
     "mcpb": "npm run clean && npm run build && npm run pack",
     "dev": "tsx src/index.ts",
@@ -27,12 +28,15 @@
     "@modelcontextprotocol/sdk": "^1.18.2",
     "better-sqlite3": "^11.0.0",
     "live-server": "^1.2.2",
-    "playwright": "^1.55.1"
+    "open": "^10.1.0",
+    "playwright": "^1.55.1",
+    "vite": "^7.1.7"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.11",
     "@types/live-server": "^1.2.3",
     "@types/node": "^24.5.2",
+    "@types/open": "^6.1.0",
     "rimraf": "^6.0.1",
     "tsx": "^4.20.6",
     "typescript": "^5.9.2"

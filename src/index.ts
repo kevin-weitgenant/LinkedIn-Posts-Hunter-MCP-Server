@@ -9,6 +9,7 @@ import { handleLinkedInAuth } from './tools/authenticate.js';
 import { handleLinkedInSearchPosts } from './tools/search-posts.js';
 import { handleLinkedInManagePosts } from './tools/posts-manager.js';
 import { startPostViewer } from './tools/start-posts-viewer/index.js';
+import { startViteViewer } from './tools/start-vite-viewer.js';
 
 // Initialize MCP server
 const server = new Server(
@@ -131,6 +132,15 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           },
           required: ["action"]
         },
+      },
+      {
+        name: "start_vite_viewer",
+        description: "Start Vite-based post viewer (experimental React app with hot reload)",
+        inputSchema: {
+          type: "object",
+          properties: {},
+          additionalProperties: false
+        },
       }
     ],
   };
@@ -159,6 +169,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         
       case "linkedin_manage_posts":
         return await handleLinkedInManagePosts(params as any);
+        
+      case "start_vite_viewer":
+        const viteResult = await startViteViewer();
+        return {
+          content: [{
+            type: "text",
+            text: `Vite Viewer started successfully!\n\n${viteResult.message}\n\nThe browser should have opened automatically. If not, visit: ${viteResult.url}\n\nThis is a proof of concept - hot reload is enabled!`
+          }]
+        };
         
       default:
         throw new Error(`Unknown tool: ${name}`);
