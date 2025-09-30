@@ -8,11 +8,47 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 /**
+ * Get URL parameters
+ */
+function getUrlParams() {
+    const params = new URLSearchParams(window.location.search);
+    return {
+        tab: params.get('tab') || 'table',
+        filters: params.get('filters') || '',
+        postId: params.get('postId') || ''
+    };
+}
+
+/**
+ * Update URL parameters without reloading
+ */
+function updateUrlParams(params) {
+    const url = new URL(window.location);
+    Object.keys(params).forEach(key => {
+        if (params[key]) {
+            url.searchParams.set(key, params[key]);
+        } else {
+            url.searchParams.delete(key);
+        }
+    });
+    window.history.pushState({}, '', url);
+}
+
+/**
  * Initialize the application
  */
 async function initializeApp() {
     try {
         setupEventListeners();
+        
+        // Load initial tab from URL
+        const urlParams = getUrlParams();
+        if (urlParams.tab === 'screenshots') {
+            switchToTab('screenshots');
+        } else {
+            switchToTab('table');
+        }
+        
         // Automatically load posts from database
         await loadPosts();
     } catch (error) {
@@ -68,6 +104,9 @@ function switchToTab(tabName) {
         
         tableContent.classList.add('active');
         screenshotsContent.classList.remove('active');
+        
+        // Update URL parameter
+        updateUrlParams({ tab: 'table' });
     } else if (tabName === 'screenshots') {
         screenshotsTab.classList.add('active', 'border-blue-500', 'text-blue-600');
         screenshotsTab.classList.remove('border-transparent', 'text-gray-500');
@@ -77,10 +116,16 @@ function switchToTab(tabName) {
         screenshotsContent.classList.add('active');
         tableContent.classList.remove('active');
         
+        // Update URL parameter
+        updateUrlParams({ tab: 'screenshots' });
+        
         // Load screenshots when switching to screenshots tab
         if (window.loadScreenshots) {
             window.loadScreenshots();
         }
     }
 }
+
+// Export for use in other modules
+export { getUrlParams, updateUrlParams };
 

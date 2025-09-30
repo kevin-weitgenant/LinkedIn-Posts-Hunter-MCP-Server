@@ -1,5 +1,14 @@
 import { state } from './state.js';
 import { deletePost } from './api.js';
+import { getUrlParams, updateUrlParams } from './app.js';
+
+// Current filter state
+let filterState = {
+    keywords: '',
+    applied: 'all', // 'all', 'applied', 'notApplied'
+    dateFrom: '',
+    dateTo: ''
+};
 
 /**
  * Load and display screenshots
@@ -15,6 +24,9 @@ async function loadScreenshots() {
         showScreenshotsLoading(true);
         hideScreenshotsError();
         hideScreenshotsEmpty();
+        
+        // Initialize filters from URL on first load
+        initializeFiltersFromUrl();
         
         // Fetch posts data from API
         const response = await fetch('/api/posts');
@@ -35,15 +47,29 @@ async function loadScreenshots() {
         }
         
         // Filter entries that have screenshots
-        const entriesWithScreenshots = data.filter(entry => entry.screenshot_path && entry.screenshot_path.trim());
+        let entriesWithScreenshots = data.filter(entry => entry.screenshot_path && entry.screenshot_path.trim());
         
         if (entriesWithScreenshots.length === 0) {
             showScreenshotsEmpty();
             return;
         }
         
+        // Populate keywords dropdown with unique values
+        populateKeywordsDropdown(entriesWithScreenshots);
+        
+        // Apply filters
+        entriesWithScreenshots = applyFilters(entriesWithScreenshots);
+        
+        if (entriesWithScreenshots.length === 0) {
+            showNoResultsMessage();
+            return;
+        }
+        
         // Render screenshot cards
         renderScreenshotCards(entriesWithScreenshots);
+        
+        // Update filter count
+        updateFilterCount(entriesWithScreenshots.length);
         
     } catch (error) {
         showScreenshotsError('Failed to load screenshots: ' + error.message);
@@ -100,13 +126,6 @@ function createScreenshotCard(entry) {
     metadata.appendChild(keywordsElement);
     metadata.appendChild(dateElement);
     header.appendChild(metadata);
-
-    // Applied toggle/button group
-    const appliedControls = document.createElement('div');
-    appliedControls.className = 'screenshot-controls';
-    const appliedToggle = createAppliedToggle(entry.id, entry.applied === 1, card);
-    appliedControls.appendChild(appliedToggle);
-    header.appendChild(appliedControls);
     
     // Screenshot image container
     const imageContainer = document.createElement('div');
@@ -139,6 +158,9 @@ function createScreenshotCard(entry) {
     const actions = document.createElement('div');
     actions.className = 'screenshot-actions';
     
+    // Add applied toggle to actions
+    const appliedToggle = createAppliedToggle(entry.id, entry.applied === 1, card);
+    
     const visitBtn = document.createElement('button');
     visitBtn.className = 'btn-visit';
     visitBtn.textContent = 'Visit Post';
@@ -149,6 +171,7 @@ function createScreenshotCard(entry) {
     removeBtn.textContent = 'Remove';
     removeBtn.onclick = () => handleRemoveEntry(entry.id, card);
     
+    actions.appendChild(appliedToggle);
     actions.appendChild(visitBtn);
     actions.appendChild(removeBtn);
     
@@ -319,7 +342,246 @@ function hideScreenshotsEmpty() {
     document.getElementById('screenshotsEmptyState').classList.add('hidden');
 }
 
+/**
+ * Populate keywords dropdown with unique values from entries
+ */
+function populateKeywordsDropdown(entries) {
+    const keywordsSelect = document.getElementById('filterKeywords');
+    if (!keywordsSelect) return;
+    
+    // Extract unique keywords
+    const keywordsSet = new Set();
+    entries.forEach(entry => {
+        if (entry.search_keywords && entry.search_keywords.trim()) {
+            keywordsSet.add(entry.search_keywords.trim());
+        }
+    });
+    
+    // Sort keywords alphabetically
+    const uniqueKeywords = Array.from(keywordsSet).sort((a, b) => 
+        a.toLowerCase().localeCompare(b.toLowerCase())
+    );
+    
+    // Keep the "All Keywords" option and current selection
+    const currentValue = keywordsSelect.value;
+    keywordsSelect.innerHTML = '<option value="">All Keywords</option>';
+    
+    // Add unique keywords as options
+    uniqueKeywords.forEach(keyword => {
+        const option = document.createElement('option');
+        option.value = keyword;
+        option.textContent = keyword;
+        keywordsSelect.appendChild(option);
+    });
+    
+    // Restore selection if it still exists
+    if (currentValue && uniqueKeywords.includes(currentValue)) {
+        keywordsSelect.value = currentValue;
+    } else if (currentValue) {
+        // If the stored filter value doesn't exist in options, keep it in filterState
+        // but reset the dropdown to "All Keywords"
+        keywordsSelect.value = '';
+    }
+}
+
+/**
+ * Initialize filters from URL parameters
+ */
+function initializeFiltersFromUrl() {
+    const urlParams = getUrlParams();
+    if (urlParams.filters) {
+        const filterPairs = urlParams.filters.split(',');
+        filterPairs.forEach(pair => {
+            const [key, value] = pair.split(':');
+            if (key && value) {
+                filterState[key] = decodeURIComponent(value);
+            }
+        });
+    }
+    
+    // Update filter UI inputs
+    updateFilterInputs();
+}
+
+/**
+ * Update filter inputs with current state
+ */
+function updateFilterInputs() {
+    const keywordsInput = document.getElementById('filterKeywords');
+    const appliedSelect = document.getElementById('filterApplied');
+    const dateFromInput = document.getElementById('filterDateFrom');
+    const dateToInput = document.getElementById('filterDateTo');
+    
+    if (keywordsInput) keywordsInput.value = filterState.keywords;
+    if (appliedSelect) appliedSelect.value = filterState.applied;
+    if (dateFromInput) dateFromInput.value = filterState.dateFrom;
+    if (dateToInput) dateToInput.value = filterState.dateTo;
+}
+
+/**
+ * Apply filters to entries
+ */
+function applyFilters(entries) {
+    return entries.filter(entry => {
+        // Filter by keywords (exact match)
+        if (filterState.keywords) {
+            const searchKeywords = (entry.search_keywords || '').trim();
+            if (searchKeywords !== filterState.keywords) {
+                return false;
+            }
+        }
+        
+        // Filter by applied status
+        if (filterState.applied === 'applied' && entry.applied !== 1) {
+            return false;
+        }
+        if (filterState.applied === 'notApplied' && entry.applied === 1) {
+            return false;
+        }
+        
+        // Filter by date from
+        if (filterState.dateFrom) {
+            const entryDate = new Date(entry.search_date);
+            const filterDate = new Date(filterState.dateFrom);
+            if (entryDate < filterDate) {
+                return false;
+            }
+        }
+        
+        // Filter by date to
+        if (filterState.dateTo) {
+            const entryDate = new Date(entry.search_date);
+            const filterDate = new Date(filterState.dateTo);
+            // Set time to end of day for 'to' date
+            filterDate.setHours(23, 59, 59, 999);
+            if (entryDate > filterDate) {
+                return false;
+            }
+        }
+        
+        return true;
+    });
+}
+
+/**
+ * Handle filter change
+ */
+function handleFilterChange() {
+    // Update filter state from inputs
+    const keywordsInput = document.getElementById('filterKeywords');
+    const appliedSelect = document.getElementById('filterApplied');
+    const dateFromInput = document.getElementById('filterDateFrom');
+    const dateToInput = document.getElementById('filterDateTo');
+    
+    filterState.keywords = keywordsInput?.value || '';
+    filterState.applied = appliedSelect?.value || 'all';
+    filterState.dateFrom = dateFromInput?.value || '';
+    filterState.dateTo = dateToInput?.value || '';
+    
+    // Update URL parameters
+    updateFiltersInUrl();
+    
+    // Reload screenshots with filters
+    loadScreenshots();
+}
+
+/**
+ * Clear all filters
+ */
+function clearFilters() {
+    filterState = {
+        keywords: '',
+        applied: 'all',
+        dateFrom: '',
+        dateTo: ''
+    };
+    
+    updateFilterInputs();
+    updateFiltersInUrl();
+    loadScreenshots();
+}
+
+/**
+ * Update filters in URL
+ */
+function updateFiltersInUrl() {
+    const filterParts = [];
+    
+    if (filterState.keywords) {
+        filterParts.push(`keywords:${encodeURIComponent(filterState.keywords)}`);
+    }
+    if (filterState.applied !== 'all') {
+        filterParts.push(`applied:${filterState.applied}`);
+    }
+    if (filterState.dateFrom) {
+        filterParts.push(`dateFrom:${filterState.dateFrom}`);
+    }
+    if (filterState.dateTo) {
+        filterParts.push(`dateTo:${filterState.dateTo}`);
+    }
+    
+    const urlParams = getUrlParams();
+    updateUrlParams({
+        tab: urlParams.tab,
+        filters: filterParts.length > 0 ? filterParts.join(',') : ''
+    });
+}
+
+/**
+ * Update filter count display
+ */
+function updateFilterCount(count) {
+    const filterCount = document.getElementById('filterCount');
+    if (filterCount) {
+        filterCount.textContent = `Showing ${count} post${count !== 1 ? 's' : ''}`;
+    }
+}
+
+/**
+ * Show no results message
+ */
+function showNoResultsMessage() {
+    const container = document.getElementById('screenshotsContainer');
+    container.innerHTML = `
+        <div class="p-12 text-center text-gray-500">
+            <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No Results Found</h3>
+            <p>Try adjusting your filters to see more posts.</p>
+            <button onclick="window.clearScreenshotFilters()" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                Clear Filters
+            </button>
+        </div>
+    `;
+}
+
+/**
+ * Setup filter event listeners
+ */
+function setupFilterListeners() {
+    const keywordsSelect = document.getElementById('filterKeywords');
+    const appliedSelect = document.getElementById('filterApplied');
+    const dateFromInput = document.getElementById('filterDateFrom');
+    const dateToInput = document.getElementById('filterDateTo');
+    const clearBtn = document.getElementById('clearFiltersBtn');
+    
+    if (keywordsSelect) keywordsSelect.addEventListener('change', handleFilterChange);
+    if (appliedSelect) appliedSelect.addEventListener('change', handleFilterChange);
+    if (dateFromInput) dateFromInput.addEventListener('change', handleFilterChange);
+    if (dateToInput) dateToInput.addEventListener('change', handleFilterChange);
+    if (clearBtn) clearBtn.addEventListener('click', clearFilters);
+}
+
+// Setup filter listeners when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupFilterListeners);
+} else {
+    setupFilterListeners();
+}
+
 // Export for use in other modules
 window.loadScreenshots = loadScreenshots;
+window.clearScreenshotFilters = clearFilters;
 
 export { loadScreenshots };
