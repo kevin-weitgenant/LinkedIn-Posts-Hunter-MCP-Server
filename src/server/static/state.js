@@ -1,8 +1,6 @@
 export let state = {
-    currentCsvData: [],
-    currentCsvFile: '',
+    currentData: [],
     hasUnsavedChanges: false,
-    csvFiles: [],
 };
 
 export function setState(newState) {

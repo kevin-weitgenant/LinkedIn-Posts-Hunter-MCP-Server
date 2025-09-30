@@ -1,6 +1,6 @@
 import { chromium, Browser, BrowserContext, Page } from 'playwright';
 import { loadAuthData, isAuthDataValid } from '../auth/storage.js';
-import { saveSearchResource, saveSearchResourceToDb } from '../utils/resource-storage.js';
+import { saveSearchResourceToDb } from '../utils/resource-storage.js';
 import { getScreenshotsPath } from '../utils/paths.js';
 import path from 'path';
 import fs from 'fs';

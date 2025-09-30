@@ -1,111 +1,62 @@
 import { showLoading, showError, showStatus } from './ui.js';
-import { parseCsv, convertToCsv } from './csv.js';
 import { state, setState } from './state.js';
 import { renderCsvTable, showCsvInfo } from './ui.js';
 
 /**
- * Scan for CSV files using API endpoint
+ * Load all posts from database
  */
-export async function scanForCsvFiles() {
-    try {
-        const response = await fetch('/api/list-csv');
-        if (!response.ok) {
-            throw new Error('Failed to fetch CSV list');
-        }
-        const files = await response.json();
-        return files;
-    } catch (error) {
-        console.error('Error scanning for CSV files:', error);
-        throw error;
-    }
-}
-
-/**
- * Load and display the unified CSV file
- */
-export async function loadCsv(filename) {
-    if (!filename) {
-        showError('No CSV file specified');
-        return;
-    }
-
+export async function loadPosts() {
     try {
         showLoading(true);
 
-        // Fetch CSV file from API endpoint
-        const response = await fetch(`/api/csv/${encodeURIComponent(filename)}`);
-
+        const response = await fetch('/api/posts');
+        
         if (!response.ok) {
-            if (response.status === 404) {
-                // File doesn't exist yet - show empty state
-                setState({
-                    currentCsvData: [],
-                    currentCsvFile: filename,
-                    hasUnsavedChanges: false,
-                });
-                showStatus('No data yet. Run a LinkedIn search to populate the database.', 'info');
-                showLoading(false);
-                return;
-            }
-            throw new Error(`Failed to load CSV file: ${response.statusText}`);
+            throw new Error(`Failed to load posts: ${response.statusText}`);
         }
 
-        const csvText = await response.text();
-
-        if (!csvText.trim()) {
-            setState({
-                currentCsvData: [],
-                currentCsvFile: filename,
-                hasUnsavedChanges: false,
-            });
-            showStatus('No data yet. Run a LinkedIn search to populate the database.', 'info');
-            showLoading(false);
-            return;
-        }
-
-        const data = parseCsv(csvText);
+        const posts = await response.json();
+        
         setState({
-            currentCsvData: data,
-            currentCsvFile: filename,
+            currentData: posts,
             hasUnsavedChanges: false,
         });
 
         renderCsvTable();
         showCsvInfo();
-        showStatus(`Loaded ${data.length} posts from database`, 'success');
+        showStatus(`Loaded ${posts.length} posts from database`, 'success');
 
     } catch (error) {
-        showError('Failed to load CSV: ' + error.message);
+        showError('Failed to load posts: ' + error.message);
     } finally {
         showLoading(false);
     }
 }
 
+
 /**
- * Save changes back to CSV file
+ * Save changes back to database
  */
 export async function saveChanges() {
-    if (!state.currentCsvFile) {
-        showError('No file is currently loaded.');
+    if (!state.currentData || state.currentData.length === 0) {
+        showError('No data to save.');
         return;
     }
 
     try {
         showStatus('Saving changes...', 'info');
 
-        const csvContent = convertToCsv(state.currentCsvData);
-
-        const response = await fetch(`/api/csv/${encodeURIComponent(state.currentCsvFile)}`, {
+        const response = await fetch('/api/posts/bulk-update', {
             method: 'POST',
             headers: {
-                'Content-Type': 'text/csv',
+                'Content-Type': 'application/json',
             },
-            body: csvContent,
+            body: JSON.stringify(state.currentData),
         });
 
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to save file');
+            throw new Error(errorData.error || 'Failed to save changes');
         }
 
         setState({ hasUnsavedChanges: false });
@@ -124,23 +75,21 @@ export async function saveChanges() {
 }
 
 /**
- * Delete an entry from CSV by ID
+ * Delete a post from database by ID
  */
-export async function deleteEntry(entryId) {
+export async function deletePost(postId) {
     try {
-        const response = await fetch(`/api/entry/${encodeURIComponent(entryId)}`, {
+        const response = await fetch(`/api/posts/${encodeURIComponent(postId)}`, {
             method: 'DELETE',
         });
 
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to delete entry');
+            throw new Error(errorData.error || 'Failed to delete post');
         }
 
-        // Reload CSV data if we're on the table view
-        if (state.currentCsvFile) {
-            await loadCsv(state.currentCsvFile);
-        }
+        // Reload posts from database
+        await loadPosts();
 
         return true;
     } catch (error) {

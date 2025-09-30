@@ -4,13 +4,13 @@ import { state, setState } from './state.js';
  * Render the CSV data as an editable table
  */
 export function renderCsvTable() {
-    if (state.currentCsvData.length === 0) {
+    if (state.currentData.length === 0) {
         showEmptyState();
         return;
     }
     
     const table = document.getElementById('csvTable');
-    const headers = Object.keys(state.currentCsvData[0]);
+    const headers = Object.keys(state.currentData[0]);
     
     // Render headers
     const thead = table.querySelector('thead');
@@ -36,7 +36,7 @@ export function renderCsvTable() {
     const tbody = table.querySelector('tbody');
     tbody.innerHTML = '';
     
-    state.currentCsvData.forEach((row, rowIndex) => {
+    state.currentData.forEach((row, rowIndex) => {
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-gray-50';
         
@@ -99,7 +99,7 @@ function finishEditing(cell, input, rowIndex, columnKey, originalValue) {
     cell.textContent = newValue;
     
     if (newValue !== originalValue) {
-        state.currentCsvData[rowIndex][columnKey] = newValue;
+        state.currentData[rowIndex][columnKey] = newValue;
         cell.classList.add('modified');
         markAsModified();
     }
@@ -109,15 +109,15 @@ function finishEditing(cell, input, rowIndex, columnKey, originalValue) {
  * Add a new empty row
  */
 export function addNewRow() {
-    if (state.currentCsvData.length === 0) return;
+    if (state.currentData.length === 0) return;
     
-    const headers = Object.keys(state.currentCsvData[0]);
+    const headers = Object.keys(state.currentData[0]);
     const newRow = {};
     headers.forEach(header => {
         newRow[header] = '';
     });
     
-    state.currentCsvData.push(newRow);
+    state.currentData.push(newRow);
     renderCsvTable();
     markAsModified();
     
@@ -131,11 +131,22 @@ export function addNewRow() {
 /**
  * Delete a row
  */
-function deleteRow(rowIndex) {
-    if (confirm('Are you sure you want to delete this row?')) {
-        state.currentCsvData.splice(rowIndex, 1);
-        renderCsvTable();
-        markAsModified();
+async function deleteRow(rowIndex) {
+    if (!confirm('Are you sure you want to delete this row?')) {
+        return;
+    }
+    
+    try {
+        const post = state.currentData[rowIndex];
+        const postId = post.id;
+        
+        // Import deletePost dynamically to avoid circular dependency
+        const { deletePost } = await import('./api.js');
+        await deletePost(postId);
+        
+        // Data will be reloaded by deletePost function
+    } catch (error) {
+        showError('Failed to delete post: ' + error.message);
     }
 }
 
@@ -156,7 +167,7 @@ export function showCsvInfo() {
     const rowCount = document.getElementById('rowCount');
     const lastModified = document.getElementById('lastModified');
     
-    rowCount.textContent = state.currentCsvData.length;
+    rowCount.textContent = state.currentData.length;
     lastModified.textContent = 'Last loaded: ' + new Date().toLocaleTimeString();
 }
 

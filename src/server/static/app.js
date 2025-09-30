@@ -1,8 +1,6 @@
 import { state, setState } from './state.js';
-import { loadCsv, saveChanges } from './api.js';
+import { loadPosts, saveChanges } from './api.js';
 import { showStatus, showError, showLoading, addNewRow } from './ui.js';
-
-const UNIFIED_CSV_FILENAME = 'linkedin_searches.csv';
 
 // Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
@@ -15,8 +13,8 @@ document.addEventListener('DOMContentLoaded', function() {
 async function initializeApp() {
     try {
         setupEventListeners();
-        // Automatically load the unified CSV file
-        await loadCsv(UNIFIED_CSV_FILENAME);
+        // Automatically load posts from database
+        await loadPosts();
     } catch (error) {
         showError('Failed to initialize application: ' + error.message);
     }

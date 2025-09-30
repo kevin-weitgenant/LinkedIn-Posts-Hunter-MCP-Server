@@ -1,7 +1,5 @@
 import { state } from './state.js';
-import { deleteEntry } from './api.js';
-
-const UNIFIED_CSV_FILENAME = 'linkedin_searches.csv';
+import { deletePost } from './api.js';
 
 /**
  * Load and display screenshots
@@ -18,8 +16,8 @@ async function loadScreenshots() {
         hideScreenshotsError();
         hideScreenshotsEmpty();
         
-        // Fetch CSV data
-        const response = await fetch(`/api/csv/${encodeURIComponent(UNIFIED_CSV_FILENAME)}`);
+        // Fetch posts data from API
+        const response = await fetch('/api/posts');
         
         if (!response.ok) {
             if (response.status === 404) {
@@ -29,14 +27,12 @@ async function loadScreenshots() {
             throw new Error('Failed to load data');
         }
         
-        const csvText = await response.text();
-        if (!csvText.trim()) {
+        const data = await response.json();
+        
+        if (!data || data.length === 0) {
             showScreenshotsEmpty();
             return;
         }
-        
-        // Parse CSV
-        const data = parseCsvForScreenshots(csvText);
         
         // Filter entries that have screenshots
         const entriesWithScreenshots = data.filter(entry => entry.screenshot_path && entry.screenshot_path.trim());
@@ -56,56 +52,6 @@ async function loadScreenshots() {
     }
 }
 
-/**
- * Parse CSV text for screenshot data
- */
-function parseCsvForScreenshots(csvText) {
-    const lines = csvText.trim().split('\n');
-    if (lines.length === 0) return [];
-    
-    const headers = parseCsvRow(lines[0]);
-    const data = [];
-    
-    for (let i = 1; i < lines.length; i++) {
-        if (lines[i].trim()) {
-            const row = parseCsvRow(lines[i]);
-            const rowObject = {};
-            headers.forEach((header, index) => {
-                rowObject[header] = row[index] || '';
-            });
-            data.push(rowObject);
-        }
-    }
-    
-    return data;
-}
-
-/**
- * Parse a single CSV row
- */
-function parseCsvRow(row) {
-    const result = [];
-    let current = '';
-    let inQuotes = false;
-    
-    for (let i = 0; i < row.length; i++) {
-        const char = row[i];
-        
-        if (char === '"' && (i === 0 || row[i-1] === ',')) {
-            inQuotes = true;
-        } else if (char === '"' && inQuotes && (i === row.length - 1 || row[i+1] === ',')) {
-            inQuotes = false;
-        } else if (char === ',' && !inQuotes) {
-            result.push(current.trim());
-            current = '';
-        } else if (!(char === '"' && (row[i-1] === ',' || i === 0 || row[i+1] === ',' || i === row.length - 1))) {
-            current += char;
-        }
-    }
-    
-    result.push(current.trim());
-    return result;
-}
 
 /**
  * Render screenshot cards in the container
@@ -218,7 +164,7 @@ async function handleRemoveEntry(entryId, cardElement) {
         buttons.forEach(btn => btn.disabled = true);
         
         // Delete entry via API
-        await deleteEntry(entryId);
+        await deletePost(entryId);
         
         // Remove card from DOM with animation
         cardElement.style.opacity = '0';

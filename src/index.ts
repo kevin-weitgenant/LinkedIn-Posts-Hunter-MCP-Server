@@ -3,9 +3,6 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
-  ListResourcesRequestSchema,
-  ListResourceTemplatesRequestSchema,
-  ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 
 import { 
@@ -16,7 +13,6 @@ import {
 import { handleLinkedInSearchPosts } from './tools/search-posts.js';
 import { handleLinkedInManageCsv } from './tools/csv-manager.js';
 import { startCsvViewer } from './tools/start-csv-viewer/index.js';
-import { listSearchResources, readSearchResource } from './utils/resource-storage.js';
 
 // Initialize MCP server
 const server = new Server(
@@ -27,7 +23,6 @@ const server = new Server(
   {
     capabilities: {
       tools: {},
-      resources: {},
     },
   }
 );
@@ -98,7 +93,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: "linkedin_manage_csv",
-        description: "Read, update, or delete entries from the LinkedIn search results CSV. Filters by ID, keywords, content, or date range. Only returns matching entries to minimize context.",
+        description: "Read, update, or delete posts from the LinkedIn database. Filters by ID, keywords, content, or date range. Only returns matching entries to minimize context.",
         inputSchema: {
           type: "object",
           properties: {
@@ -144,60 +139,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       }
     ],
-  };
-});
-
-// List available resource templates
-server.setRequestHandler(ListResourceTemplatesRequestSchema, async () => {
-  return {
-    resourceTemplates: [
-      {
-        uriTemplate: "file:///.linkedin-mcp/resources/searches/{filename}",
-        name: "LinkedIn Search Results",
-        description: "CSV files containing LinkedIn post search results",
-        mimeType: "text/csv"
-      }
-    ]
-  };
-});
-
-// List available resources
-server.setRequestHandler(ListResourcesRequestSchema, async () => {
-  const searchResources = await listSearchResources();
-  
-  return {
-    resources: searchResources.map(resource => ({
-      uri: resource.uri,
-      name: resource.name,
-      description: resource.description,
-      mimeType: resource.mimeType
-    }))
-  };
-});
-
-// Read specific resource
-server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
-  const uri = request.params.uri;
-  
-  // Extract filename from URI
-  const filename = uri.split('/').pop();
-  if (!filename) {
-    throw new Error('Invalid resource URI');
-  }
-  
-  const content = await readSearchResource(filename);
-  if (content === null) {
-    throw new Error('Resource not found');
-  }
-  
-  return {
-    contents: [
-      {
-        uri: uri,
-        mimeType: "text/csv",
-        text: content
-      }
-    ]
   };
 });
 

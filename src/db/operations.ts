@@ -108,3 +108,113 @@ export function getPostById(id: number): DbPost | null {
   const result = stmt.get(id);
   return result ? (result as DbPost) : null;
 }
+
+/**
+ * Query posts with filters - supports search_text, date range, IDs, limit
+ */
+export function queryPosts(params: {
+  ids?: number[];
+  search_text?: string;
+  date_from?: string;
+  date_to?: string;
+  limit?: number;
+}): DbPost[] {
+  const db = getDatabase();
+  
+  let sql = 'SELECT * FROM posts WHERE 1=1';
+  const bindings: any[] = [];
+  
+  // Filter by IDs
+  if (params.ids && params.ids.length > 0) {
+    const placeholders = params.ids.map(() => '?').join(',');
+    sql += ` AND id IN (${placeholders})`;
+    bindings.push(...params.ids);
+  }
+  
+  // Filter by search text (searches in keywords and description)
+  if (params.search_text) {
+    sql += ` AND (search_keywords LIKE ? OR description LIKE ?)`;
+    const searchPattern = `%${params.search_text}%`;
+    bindings.push(searchPattern, searchPattern);
+  }
+  
+  // Filter by date range
+  if (params.date_from) {
+    sql += ` AND search_date >= ?`;
+    bindings.push(params.date_from);
+  }
+  
+  if (params.date_to) {
+    sql += ` AND search_date <= ?`;
+    bindings.push(params.date_to);
+  }
+  
+  // Order by date (newest first)
+  sql += ' ORDER BY search_date DESC';
+  
+  // Limit results
+  if (params.limit) {
+    sql += ' LIMIT ?';
+    bindings.push(params.limit);
+  }
+  
+  const stmt = db.prepare(sql);
+  return stmt.all(...bindings) as DbPost[];
+}
+
+/**
+ * Update multiple posts with new values
+ */
+export function updatePostsBulk(
+  postIds: number[],
+  updates: {
+    new_description?: string;
+    new_keywords?: string;
+  }
+): number {
+  const db = getDatabase();
+  
+  let sql = 'UPDATE posts SET ';
+  const setClauses: string[] = [];
+  const bindings: any[] = [];
+  
+  if (updates.new_description) {
+    setClauses.push('description = ?');
+    bindings.push(updates.new_description);
+  }
+  
+  if (updates.new_keywords) {
+    setClauses.push('search_keywords = ?');
+    bindings.push(updates.new_keywords);
+  }
+  
+  if (setClauses.length === 0) {
+    return 0; // Nothing to update
+  }
+  
+  sql += setClauses.join(', ');
+  sql += ' WHERE id IN (' + postIds.map(() => '?').join(',') + ')';
+  bindings.push(...postIds);
+  
+  const stmt = db.prepare(sql);
+  const result = stmt.run(...bindings);
+  return result.changes;
+}
+
+/**
+ * Delete multiple posts by IDs
+ */
+export function deletePostsBulk(postIds: number[]): number {
+  const db = getDatabase();
+  
+  if (postIds.length === 0) {
+    return 0;
+  }
+  
+  const placeholders = postIds.map(() => '?').join(',');
+  const sql = `DELETE FROM posts WHERE id IN (${placeholders})`;
+  
+  const stmt = db.prepare(sql);
+  const result = stmt.run(...postIds);
+  return result.changes;
+}

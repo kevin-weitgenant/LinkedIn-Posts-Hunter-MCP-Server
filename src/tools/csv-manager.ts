@@ -1,6 +1,10 @@
-import fs from 'fs';
-import path from 'path';
-import { getSearchResourcesPath } from '../utils/paths.js';
+import { 
+  queryPosts, 
+  updatePostsBulk, 
+  deletePostsBulk, 
+  countPosts 
+} from '../db/operations.js';
+import type { DbPost } from '../db/operations.js';
 
 export interface CsvManagerParams {
   action: 'read' | 'update' | 'delete';
@@ -15,150 +19,21 @@ export interface CsvManagerParams {
   new_keywords?: string;
 }
 
-interface CsvEntry {
-  id: number;
-  search_keywords: string;
-  post_link: string;
-  description: string;
-  search_date: string;
-}
-
 /**
- * Parse CSV line handling quoted fields with commas and newlines
+ * Format post for display
  */
-const parseCsvLine = (line: string): string[] => {
-  const fields: string[] = [];
-  let current = '';
-  let inQuotes = false;
-  
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    
-    if (char === '"') {
-      if (inQuotes && line[i + 1] === '"') {
-        current += '"';
-        i++; // Skip next quote
-      } else {
-        inQuotes = !inQuotes;
-      }
-    } else if (char === ',' && !inQuotes) {
-      fields.push(current);
-      current = '';
-    } else {
-      current += char;
-    }
-  }
-  
-  fields.push(current);
-  return fields;
-};
-
-/**
- * Read and parse CSV file
- */
-const readCsvFile = (): CsvEntry[] => {
-  const csvPath = path.join(getSearchResourcesPath(), 'linkedin_searches.csv');
-  
-  if (!fs.existsSync(csvPath)) {
-    return [];
-  }
-  
-  const content = fs.readFileSync(csvPath, 'utf8');
-  const lines = content.split('\n').filter(line => line.trim());
-  
-  if (lines.length <= 1) {
-    return [];
-  }
-  
-  const entries: CsvEntry[] = [];
-  
-  // Skip header (line 0)
-  for (let i = 1; i < lines.length; i++) {
-    const fields = parseCsvLine(lines[i]);
-    
-    if (fields.length >= 5) {
-      entries.push({
-        id: parseInt(fields[0]),
-        search_keywords: fields[1],
-        post_link: fields[2],
-        description: fields[3],
-        search_date: fields[4]
-      });
-    }
-  }
-  
-  return entries;
-};
-
-/**
- * Write entries back to CSV
- */
-const writeCsvFile = (entries: CsvEntry[]): void => {
-  const csvPath = path.join(getSearchResourcesPath(), 'linkedin_searches.csv');
-  
-  const escapeCsvField = (field: string): string => {
-    return `"${field.replace(/"/g, '""')}"`;
-  };
-  
-  const lines = [
-    'id,search_keywords,post_link,description,search_date',
-    ...entries.map(e => 
-      `${e.id},${escapeCsvField(e.search_keywords)},${escapeCsvField(e.post_link)},${escapeCsvField(e.description)},${escapeCsvField(e.search_date)}`
-    )
-  ];
-  
-  fs.writeFileSync(csvPath, lines.join('\n') + '\n', 'utf8');
-};
-
-/**
- * Filter entries based on parameters
- */
-const filterEntries = (entries: CsvEntry[], params: CsvManagerParams): CsvEntry[] => {
-  let filtered = entries;
-  
-  // Filter by IDs
-  if (params.ids && params.ids.length > 0) {
-    filtered = filtered.filter(e => params.ids!.includes(e.id));
-  }
-  
-  // Filter by search text (searches in keywords and description)
-  if (params.search_text) {
-    const searchLower = params.search_text.toLowerCase();
-    filtered = filtered.filter(e => 
-      e.search_keywords.toLowerCase().includes(searchLower) ||
-      e.description.toLowerCase().includes(searchLower)
-    );
-  }
-  
-  // Filter by date range
-  if (params.date_from) {
-    const fromDate = new Date(params.date_from);
-    filtered = filtered.filter(e => new Date(e.search_date) >= fromDate);
-  }
-  
-  if (params.date_to) {
-    const toDate = new Date(params.date_to);
-    filtered = filtered.filter(e => new Date(e.search_date) <= toDate);
-  }
-  
-  return filtered;
-};
-
-/**
- * Format entry for display
- */
-const formatEntry = (entry: CsvEntry, truncateDesc: boolean = true): string => {
+const formatPost = (post: DbPost): string => {
   const maxDescLength = 300;
-  let desc = entry.description;
+  let desc = post.description;
   
-  if (truncateDesc && desc.length > maxDescLength) {
+  if (desc.length > maxDescLength) {
     desc = desc.substring(0, maxDescLength) + '...';
   }
   
-  const date = new Date(entry.search_date).toISOString().split('T')[0];
+  const date = new Date(post.search_date).toISOString().split('T')[0];
   
-  return `#${entry.id} | Keywords: ${entry.search_keywords}
-     Link: ${entry.post_link}
+  return `#${post.id} | Keywords: ${post.search_keywords}
+     Link: ${post.post_link}
      Desc: ${desc}
      Date: ${date}`;
 };
@@ -167,33 +42,35 @@ const formatEntry = (entry: CsvEntry, truncateDesc: boolean = true): string => {
  * Handle read action
  */
 const handleRead = (params: CsvManagerParams): string => {
-  const allEntries = readCsvFile();
-  const filtered = filterEntries(allEntries, params);
-  
   const limit = params.limit ?? 10;
-  const limited = filtered.slice(0, limit);
   
-  if (filtered.length === 0) {
-    return `No entries found matching your criteria.\n\nTotal entries in database: ${allEntries.length}`;
+  const posts = queryPosts({
+    ids: params.ids,
+    search_text: params.search_text,
+    date_from: params.date_from,
+    date_to: params.date_to,
+    limit: limit
+  });
+  
+  const totalPosts = countPosts();
+  
+  if (posts.length === 0) {
+    return `No posts found matching your criteria.\n\nTotal posts in database: ${totalPosts}`;
   }
   
-  let result = `Found ${filtered.length} of ${allEntries.length} total entries`;
+  let result = `Found ${posts.length} of ${totalPosts} total posts`;
   
-  if (filtered.length > limit) {
-    result += ` (showing first ${limit})`;
+  if (posts.length >= limit) {
+    result += ` (showing up to ${limit})`;
   }
   
   result += ':\n\n';
   
-  limited.forEach(entry => {
-    result += formatEntry(entry) + '\n\n';
+  posts.forEach(post => {
+    result += formatPost(post) + '\n\n';
   });
   
-  if (filtered.length > limit) {
-    result += `💡 ${filtered.length - limit} more entries match. Increase 'limit' or add more filters to see them.`;
-  } else {
-    result += `💡 Use IDs to update/delete specific entries.`;
-  }
+  result += `💡 Use IDs to update/delete specific posts.`;
   
   return result;
 };
@@ -206,51 +83,48 @@ const handleUpdate = (params: CsvManagerParams): string => {
     return 'Error: Must provide new_description or new_keywords for update action.';
   }
   
-  const allEntries = readCsvFile();
-  const toUpdate = filterEntries(allEntries, params);
-  
-  if (toUpdate.length === 0) {
-    return 'No entries found matching your criteria. No updates made.';
-  }
-  
-  let updateCount = 0;
-  
-  allEntries.forEach(entry => {
-    const shouldUpdate = toUpdate.some(u => u.id === entry.id);
-    
-    if (shouldUpdate) {
-      if (params.new_description) {
-        entry.description = params.new_description;
-      }
-      if (params.new_keywords) {
-        entry.search_keywords = params.new_keywords;
-      }
-      updateCount++;
-    }
+  // First, get the posts to update based on filters
+  const postsToUpdate = queryPosts({
+    ids: params.ids,
+    search_text: params.search_text,
+    date_from: params.date_from,
+    date_to: params.date_to
   });
   
-  writeCsvFile(allEntries);
+  if (postsToUpdate.length === 0) {
+    return 'No posts found matching your criteria. No updates made.';
+  }
   
-  return `✓ Updated ${updateCount} ${updateCount === 1 ? 'entry' : 'entries'} (IDs: ${toUpdate.map(e => e.id).join(', ')})`;
+  const postIds = postsToUpdate.map(p => p.id);
+  
+  const updateCount = updatePostsBulk(postIds, {
+    new_description: params.new_description,
+    new_keywords: params.new_keywords
+  });
+  
+  return `✓ Updated ${updateCount} ${updateCount === 1 ? 'post' : 'posts'} (IDs: ${postIds.join(', ')})`;
 };
 
 /**
  * Handle delete action
  */
 const handleDelete = (params: CsvManagerParams): string => {
-  const allEntries = readCsvFile();
-  const toDelete = filterEntries(allEntries, params);
+  // First, get the posts to delete based on filters
+  const postsToDelete = queryPosts({
+    ids: params.ids,
+    search_text: params.search_text,
+    date_from: params.date_from,
+    date_to: params.date_to
+  });
   
-  if (toDelete.length === 0) {
-    return 'No entries found matching your criteria. No deletions made.';
+  if (postsToDelete.length === 0) {
+    return 'No posts found matching your criteria. No deletions made.';
   }
   
-  const deleteIds = new Set(toDelete.map(e => e.id));
-  const remaining = allEntries.filter(e => !deleteIds.has(e.id));
+  const postIds = postsToDelete.map(p => p.id);
+  const deleteCount = deletePostsBulk(postIds);
   
-  writeCsvFile(remaining);
-  
-  return `✓ Deleted ${toDelete.length} ${toDelete.length === 1 ? 'entry' : 'entries'} (IDs: ${Array.from(deleteIds).join(', ')})`;
+  return `✓ Deleted ${deleteCount} ${deleteCount === 1 ? 'post' : 'posts'} (IDs: ${postIds.join(', ')})`;
 };
 
 /**

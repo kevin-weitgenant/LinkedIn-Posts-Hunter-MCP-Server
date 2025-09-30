@@ -2,7 +2,7 @@ import liveServer from 'live-server';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
-import { getSearchResourcesPath, getScreenshotsPath } from '../../utils/paths.js';
+import { getSearchResourcesPath, getScreenshotsPath, getResourcesPath } from '../../utils/paths.js';
 import {
   CsvViewerResult,
   MiddlewareRequest,
@@ -11,6 +11,8 @@ import {
 } from './types.js';
 import { CONSTANTS } from './constants.js';
 import { formatCsvDisplayName, validateFilePath } from './util.js';
+import { getAllPosts, deletePostById, updatePost, getPostById } from '../../db/operations.js';
+import type { DbPost } from '../../db/operations.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,104 +21,90 @@ const __dirname = path.dirname(__filename);
 export type { CsvViewerResult } from './types.js';
 
 /**
- * Handle the /api/list-csv endpoint - returns list of available CSV files
+ * Handle the /api/posts endpoint - returns all posts from database as JSON
  */
-function handleListCsvRequest(res: MiddlewareResponse): void {
+function handleGetPostsRequest(res: MiddlewareResponse): void {
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Access-Control-Allow-Origin', '*');
   
   try {
-    const searchDir = getSearchResourcesPath();
-    const files = fs.readdirSync(searchDir)
-      .filter(file => file.endsWith('.csv'))
-      .map(file => ({
-        filename: file,
-        displayName: formatCsvDisplayName(file)
-      }));
-    
+    const posts = getAllPosts();
     res.writeHead(200);
-    res.end(JSON.stringify(files));
+    res.end(JSON.stringify(posts));
   } catch (error) {
     res.writeHead(500);
-    res.end(JSON.stringify({ error: 'Failed to list CSV files' }));
+    res.end(JSON.stringify({ error: 'Failed to load posts from database' }));
   }
 }
 
 /**
- * Handle the /api/csv/:filename endpoint - serves CSV file content
+ * Handle the GET /api/posts/:id endpoint - get single post by ID
  */
-function handleCsvFileRequest(req: MiddlewareRequest, res: MiddlewareResponse): void {
-  res.setHeader('Content-Type', 'text/csv');
+function handleGetSinglePostRequest(req: MiddlewareRequest, res: MiddlewareResponse): void {
+  res.setHeader('Content-Type', 'application/json');
   res.setHeader('Access-Control-Allow-Origin', '*');
   
   try {
     if (!req.url) {
       throw new Error('Request URL not found');
     }
-    const filename = decodeURIComponent(req.url.replace('/api/csv/', ''));
-    const searchDir = getSearchResourcesPath();
-    const filePath = path.join(searchDir, filename);
+    const id = parseInt(decodeURIComponent(req.url.replace('/api/posts/', '')));
     
-    // Security check: ensure the file is within the search directory
-    if (!validateFilePath(filePath, searchDir)) {
-      res.writeHead(403);
-      res.end('Access denied');
+    if (isNaN(id)) {
+      res.writeHead(400);
+      res.end(JSON.stringify({ error: 'Invalid post ID' }));
       return;
     }
     
-    if (!fs.existsSync(filePath)) {
+    const post = getPostById(id);
+    
+    if (!post) {
       res.writeHead(404);
-      res.end('File not found');
+      res.end(JSON.stringify({ error: 'Post not found' }));
       return;
     }
     
-    const csvContent = fs.readFileSync(filePath, 'utf8');
     res.writeHead(200);
-    res.end(csvContent);
+    res.end(JSON.stringify(post));
   } catch (error) {
     res.writeHead(500);
-    res.end('Failed to read CSV file');
+    res.end(JSON.stringify({ error: 'Failed to load post' }));
   }
 }
 
 /**
- * Handle POST /api/csv/:filename endpoint - saves CSV file content
+ * Handle POST /api/posts/bulk-update endpoint - updates multiple posts
  */
-function handleSaveCsvRequest(req: MiddlewareRequest, res: MiddlewareResponse): void {
-  try {
-    if (!req.url) {
-      throw new Error('Request URL not found');
-    }
-    const filename = decodeURIComponent(req.url.replace('/api/csv/', ''));
-    const searchDir = getSearchResourcesPath();
-    const filePath = path.join(searchDir, filename);
+function handleBulkUpdatePostsRequest(req: MiddlewareRequest, res: MiddlewareResponse): void {
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  
+  let body = '';
+  req.on('data', chunk => {
+    body += chunk.toString();
+  });
 
-    if (!validateFilePath(filePath, searchDir)) {
-      res.writeHead(403);
-      res.end('Access denied');
-      return;
-    }
-
-    let body = '';
-    req.on('data', chunk => {
-      body += chunk.toString();
-    });
-
-    req.on('end', () => {
-      try {
-        fs.writeFileSync(filePath, body, 'utf8');
-        res.writeHead(200);
-        res.end(JSON.stringify({ message: 'File saved successfully' }));
-      } catch (error) {
-        res.writeHead(500);
-        res.end(JSON.stringify({ error: 'Failed to save file' }));
+  req.on('end', () => {
+    try {
+      const posts: DbPost[] = JSON.parse(body);
+      
+      let updatedCount = 0;
+      for (const post of posts) {
+        if (updatePost(post)) {
+          updatedCount++;
+        }
       }
-    });
-
-  } catch (error) {
-    res.writeHead(500);
-    res.end(JSON.stringify({ error: 'Invalid request' }));
-  }
+      
+      res.writeHead(200);
+      res.end(JSON.stringify({ 
+        message: `Successfully updated ${updatedCount} post(s)`,
+        updated: updatedCount
+      }));
+    } catch (error) {
+      res.writeHead(500);
+      res.end(JSON.stringify({ error: 'Failed to update posts' }));
+    }
+  });
 }
 
 /**
@@ -157,58 +145,37 @@ function handleScreenshotRequest(req: MiddlewareRequest, res: MiddlewareResponse
 }
 
 /**
- * Handle DELETE /api/entry/:id endpoint - deletes an entry from CSV by ID
+ * Handle DELETE /api/posts/:id endpoint - deletes a post from database by ID
  */
-function handleDeleteEntryRequest(req: MiddlewareRequest, res: MiddlewareResponse): void {
+function handleDeletePostRequest(req: MiddlewareRequest, res: MiddlewareResponse): void {
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  
   try {
     if (!req.url) {
       throw new Error('Request URL not found');
     }
-    const id = decodeURIComponent(req.url.replace('/api/entry/', ''));
-    const searchDir = getSearchResourcesPath();
-    const filename = 'linkedin_searches.csv';
-    const filePath = path.join(searchDir, filename);
+    const id = parseInt(decodeURIComponent(req.url.replace('/api/posts/', '')));
     
-    if (!fs.existsSync(filePath)) {
-      res.writeHead(404);
-      res.end(JSON.stringify({ error: 'CSV file not found' }));
-      return;
-    }
-    
-    // Read and parse CSV
-    const csvContent = fs.readFileSync(filePath, 'utf8');
-    const lines = csvContent.split('\n');
-    
-    if (lines.length <= 1) {
+    if (isNaN(id)) {
       res.writeHead(400);
-      res.end(JSON.stringify({ error: 'No entries to delete' }));
+      res.end(JSON.stringify({ error: 'Invalid post ID' }));
       return;
     }
     
-    // Filter out the entry with matching ID
-    const header = lines[0];
-    const filteredLines = lines.slice(1).filter(line => {
-      if (!line.trim()) return false;
-      const firstComma = line.indexOf(',');
-      if (firstComma > 0) {
-        const lineId = line.substring(0, firstComma);
-        return lineId !== id;
-      }
-      return true;
-    });
+    const deleted = deletePostById(id);
     
-    // Write back to file
-    const newContent = header + '\n' + filteredLines.join('\n');
-    fs.writeFileSync(filePath, newContent, 'utf8');
-    
-    res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.writeHead(200);
-    res.end(JSON.stringify({ message: 'Entry deleted successfully' }));
+    if (deleted) {
+      res.writeHead(200);
+      res.end(JSON.stringify({ message: 'Post deleted successfully' }));
+    } else {
+      res.writeHead(404);
+      res.end(JSON.stringify({ error: 'Post not found' }));
+    }
     
   } catch (error) {
     res.writeHead(500);
-    res.end(JSON.stringify({ error: 'Failed to delete entry' }));
+    res.end(JSON.stringify({ error: 'Failed to delete post' }));
   }
 }
 
@@ -217,31 +184,33 @@ function handleDeleteEntryRequest(req: MiddlewareRequest, res: MiddlewareRespons
  */
 function createApiMiddleware() {
   return function(req: MiddlewareRequest, res: MiddlewareResponse, next: NextFunction) {
-    // API endpoint to list available CSV files
-    if (req.url === '/api/list-csv') {
-      handleListCsvRequest(res);
+    // GET /api/posts - Get all posts
+    if (req.url === '/api/posts' && req.method === 'GET') {
+      handleGetPostsRequest(res);
       return;
     }
     
-    // Handle GET and POST for CSV files
-    if (req.url?.startsWith('/api/csv/')) {
-      if (req.method === 'POST') {
-        handleSaveCsvRequest(req, res);
-      } else {
-        handleCsvFileRequest(req, res);
-      }
+    // POST /api/posts/bulk-update - Update multiple posts
+    if (req.url === '/api/posts/bulk-update' && req.method === 'POST') {
+      handleBulkUpdatePostsRequest(req, res);
+      return;
+    }
+    
+    // GET /api/posts/:id - Get single post
+    if (req.url?.startsWith('/api/posts/') && req.method === 'GET' && !req.url.includes('bulk-update')) {
+      handleGetSinglePostRequest(req, res);
+      return;
+    }
+    
+    // DELETE /api/posts/:id - Delete post
+    if (req.url?.startsWith('/api/posts/') && req.method === 'DELETE') {
+      handleDeletePostRequest(req, res);
       return;
     }
     
     // Handle screenshot requests
     if (req.url?.startsWith('/api/screenshots/')) {
       handleScreenshotRequest(req, res);
-      return;
-    }
-    
-    // Handle delete entry requests
-    if (req.url?.startsWith('/api/entry/') && req.method === 'DELETE') {
-      handleDeleteEntryRequest(req, res);
       return;
     }
     
@@ -252,13 +221,13 @@ function createApiMiddleware() {
 /**
  * Build the live-server configuration object
  */
-function buildServerConfig(port: number, staticRoot: string, csvWatchPath: string) {
+function buildServerConfig(port: number, staticRoot: string, csvWatchPath: string, dbPath: string) {
   return {
     port,
     root: staticRoot,
     open: true,
     file: 'index.html',
-    watch: [csvWatchPath], // Watch CSV directory for changes
+    watch: [csvWatchPath, dbPath], // Watch CSV directory and database file for changes
     ignore: CONSTANTS.IGNORED_PATTERNS,
     logLevel: CONSTANTS.LOG_LEVEL as 0 | 1 | 2,
     middleware: [createApiMiddleware()]
@@ -275,8 +244,9 @@ export async function startCsvViewer(): Promise<CsvViewerResult> {
   const projectRoot = path.resolve(__dirname, '..', '..', '..');
   const staticRoot = path.join(projectRoot, 'src', 'server', 'static');
   const csvWatchPath = getSearchResourcesPath();
+  const dbPath = path.join(getResourcesPath(), 'linkedin.db');
   
-  const serverConfig = buildServerConfig(CONSTANTS.DEFAULT_PORT, staticRoot, csvWatchPath);
+  const serverConfig = buildServerConfig(CONSTANTS.DEFAULT_PORT, staticRoot, csvWatchPath, dbPath);
   
   try {
     liveServer.start(serverConfig);
@@ -285,7 +255,7 @@ export async function startCsvViewer(): Promise<CsvViewerResult> {
       port: CONSTANTS.DEFAULT_PORT,
       status: 'started',
       url: `http://localhost:${CONSTANTS.DEFAULT_PORT}`,
-      message: `CSV viewer started at http://localhost:${CONSTANTS.DEFAULT_PORT}. Browser should open automatically. Watching ${csvWatchPath} for changes.`
+      message: `CSV viewer started at http://localhost:${CONSTANTS.DEFAULT_PORT}. Browser should open automatically. Watching ${csvWatchPath} and database for changes.`
     };
   } catch (error) {
     throw new Error(`Failed to start CSV viewer: ${error instanceof Error ? error.message : 'Unknown error'}`);
