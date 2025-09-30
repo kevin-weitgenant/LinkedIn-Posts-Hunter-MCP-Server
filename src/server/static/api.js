@@ -21,14 +21,11 @@ export async function scanForCsvFiles() {
 }
 
 /**
- * Load and display a CSV file
+ * Load and display the unified CSV file
  */
 export async function loadCsv(filename) {
-    const select = document.getElementById('csvSelect');
-    const fileToLoad = filename || select.value;
-
-    if (!fileToLoad) {
-        showError('Please select a CSV file first');
+    if (!filename) {
+        showError('No CSV file specified');
         return;
     }
 
@@ -36,35 +33,46 @@ export async function loadCsv(filename) {
         showLoading(true);
 
         // Fetch CSV file from API endpoint
-        const response = await fetch(`/api/csv/${encodeURIComponent(fileToLoad)}`);
+        const response = await fetch(`/api/csv/${encodeURIComponent(filename)}`);
 
         if (!response.ok) {
+            if (response.status === 404) {
+                // File doesn't exist yet - show empty state
+                setState({
+                    currentCsvData: [],
+                    currentCsvFile: filename,
+                    hasUnsavedChanges: false,
+                });
+                showStatus('No data yet. Run a LinkedIn search to populate the database.', 'info');
+                showLoading(false);
+                return;
+            }
             throw new Error(`Failed to load CSV file: ${response.statusText}`);
         }
 
         const csvText = await response.text();
 
         if (!csvText.trim()) {
-            throw new Error('CSV file is empty');
+            setState({
+                currentCsvData: [],
+                currentCsvFile: filename,
+                hasUnsavedChanges: false,
+            });
+            showStatus('No data yet. Run a LinkedIn search to populate the database.', 'info');
+            showLoading(false);
+            return;
         }
 
         const data = parseCsv(csvText);
         setState({
             currentCsvData: data,
-            currentCsvFile: fileToLoad,
+            currentCsvFile: filename,
             hasUnsavedChanges: false,
         });
 
-        select.value = fileToLoad;
-
         renderCsvTable();
         showCsvInfo();
-        showStatus(`Loaded ${data.length} rows from ${fileToLoad}`, 'success');
-
-        // Update URL
-        const url = new URL(window.location);
-        url.searchParams.set('file', fileToLoad);
-        window.history.pushState({}, '', url);
+        showStatus(`Loaded ${data.length} posts from database`, 'success');
 
     } catch (error) {
         showError('Failed to load CSV: ' + error.message);

@@ -8,44 +8,49 @@ export interface SearchResourceMetadata {
   uri: string;
   name: string;
   description: string;
-  keywords: string;
-  resultCount: number;
-  createdAt: string;
+  totalSearches: number;
+  totalPosts: number;
+  lastUpdated: string;
   mimeType: string;
 }
 
 /**
- * Sanitize keywords for use in filename
+ * Get the unified CSV filename
  */
-const sanitizeFilename = (keywords: string): string => {
-  return keywords
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, '') // Remove special characters
-    .replace(/\s+/g, '_') // Replace spaces with underscores
-    .substring(0, 50); // Limit length
+const getUnifiedCsvFilename = (): string => {
+  return 'linkedin_searches.csv';
 };
 
 /**
- * Generate filename for search resource
+ * Convert PostResult array to CSV rows (without headers)
  */
-const generateFilename = (keywords: string): string => {
-  const now = new Date();
-  const datePart = now.toISOString().slice(0, 19).replace(/[-:T]/g, '').slice(0, 14); // YYYYMMDDHHMMSS
-  const keywordsPart = sanitizeFilename(keywords);
-  return `${datePart}_${keywordsPart}.csv`;
+const convertToCsvRows = (results: PostResult[], keywords: string, searchDate: string): string[] => {
+  return results.map((post) => {
+    const escapedKeywords = keywords.replace(/"/g, '""');
+    const escapedLink = post.link.replace(/"/g, '""');
+    const escapedDescription = post.description.replace(/"/g, '""');
+    return `"${escapedKeywords}","${escapedLink}","${escapedDescription}","${searchDate}"`;
+  });
 };
 
 /**
- * Convert PostResult array to CSV content
+ * Parse existing CSV content and extract post links
  */
-const convertToCsv = (results: PostResult[]): string => {
-  const headers = 'id,post_link,description\n';
-  const rows = results.map((post, index) => {
-    const description = post.description.replace(/"/g, '""'); // Escape quotes
-    return `${index + 1},"${post.link}","${description}"`;
-  }).join('\n');
+const parseExistingCsv = (csvContent: string): Set<string> => {
+  const lines = csvContent.split('\n').slice(1); // Skip header
+  const existingLinks = new Set<string>();
   
-  return headers + rows;
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    
+    // Extract post_link (second column) - basic CSV parsing
+    const match = line.match(/"([^"]+)","([^"]+)",/);
+    if (match && match[2]) {
+      existingLinks.add(match[2]);
+    }
+  }
+  
+  return existingLinks;
 };
 
 /**
@@ -54,33 +59,67 @@ const convertToCsv = (results: PostResult[]): string => {
 export const saveSearchResource = async (
   results: PostResult[], 
   keywords: string
-): Promise<SearchResourceMetadata> => {
+): Promise<SearchResourceMetadata & { newPostsAdded: number; duplicatesSkipped: number }> => {
   ensureResourceDirectories();
   
-  const filename = generateFilename(keywords);
+  const filename = getUnifiedCsvFilename();
   const searchDir = getSearchResourcesPath();
   const filePath = path.join(searchDir, filename);
-  const csvContent = convertToCsv(results);
+  const searchDate = new Date().toISOString();
   
-  // Save CSV file
-  fs.writeFileSync(filePath, csvContent, 'utf8');
+  let existingLinks = new Set<string>();
+  let fileExists = false;
+  let totalPostsInFile = 0;
+  
+  // Read existing CSV if it exists
+  if (fs.existsSync(filePath)) {
+    fileExists = true;
+    const existingContent = fs.readFileSync(filePath, 'utf8');
+    existingLinks = parseExistingCsv(existingContent);
+    totalPostsInFile = existingLinks.size;
+  }
+  
+  // Filter out duplicate posts
+  const newResults = results.filter(post => !existingLinks.has(post.link));
+  const duplicatesSkipped = results.length - newResults.length;
+  
+  // Convert new results to CSV rows
+  const newRows = convertToCsvRows(newResults, keywords, searchDate);
+  
+  // Write or append to CSV file
+  if (!fileExists) {
+    // Create new file with headers
+    const headers = 'search_keywords,post_link,description,search_date\n';
+    const csvContent = headers + newRows.join('\n') + '\n';
+    fs.writeFileSync(filePath, csvContent, 'utf8');
+  } else if (newRows.length > 0) {
+    // Append new rows
+    const appendContent = newRows.join('\n') + '\n';
+    fs.appendFileSync(filePath, appendContent, 'utf8');
+  }
+  
+  totalPostsInFile += newResults.length;
   
   // Create metadata
   const metadata: SearchResourceMetadata = {
     filename,
-    uri: `file://${filePath.replace(/\\/g, '/')}`, // Normalize path separators for URI
-    name: `LinkedIn Search: ${keywords}`,
-    description: `LinkedIn search results for '${keywords}' (${results.length} posts found on ${new Date().toLocaleDateString()})`,
-    keywords,
-    resultCount: results.length,
-    createdAt: new Date().toISOString(),
+    uri: `file://${filePath.replace(/\\/g, '/')}`,
+    name: 'LinkedIn Search Results (Unified)',
+    description: `All LinkedIn search results in one file. Total: ${totalPostsInFile} posts. Last updated: ${new Date().toLocaleDateString()}`,
+    totalSearches: 0, // Will be updated by registry
+    totalPosts: totalPostsInFile,
+    lastUpdated: searchDate,
     mimeType: 'text/csv'
   };
   
-  // Save metadata to registry
-  await updateResourceRegistry(metadata);
+  // Update metadata in registry
+  await updateResourceRegistry(metadata, keywords);
   
-  return metadata;
+  return {
+    ...metadata,
+    newPostsAdded: newResults.length,
+    duplicatesSkipped
+  };
 };
 
 /**
@@ -113,19 +152,25 @@ const loadResourceRegistry = async (): Promise<SearchResourceMetadata[]> => {
 /**
  * Update resource registry with new metadata
  */
-const updateResourceRegistry = async (newMetadata: SearchResourceMetadata): Promise<void> => {
+const updateResourceRegistry = async (newMetadata: SearchResourceMetadata, keywords: string): Promise<void> => {
   const registry = await loadResourceRegistry();
   
-  // Add new resource (or replace if same filename exists)
+  // Find or create entry for unified CSV
   const existingIndex = registry.findIndex(r => r.filename === newMetadata.filename);
-  if (existingIndex >= 0) {
-    registry[existingIndex] = newMetadata;
-  } else {
-    registry.push(newMetadata);
-  }
   
-  // Sort by creation date (newest first)
-  registry.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  if (existingIndex >= 0) {
+    // Update existing entry
+    registry[existingIndex] = {
+      ...newMetadata,
+      totalSearches: registry[existingIndex].totalSearches + 1
+    };
+  } else {
+    // Create new entry
+    registry.push({
+      ...newMetadata,
+      totalSearches: 1
+    });
+  }
   
   const registryPath = getRegistryPath();
   fs.writeFileSync(registryPath, JSON.stringify(registry, null, 2), 'utf8');

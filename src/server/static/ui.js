@@ -153,14 +153,11 @@ function markAsModified() {
  * Show CSV info
  */
 export function showCsvInfo() {
-    const info = document.getElementById('csvInfo');
     const rowCount = document.getElementById('rowCount');
     const lastModified = document.getElementById('lastModified');
     
     rowCount.textContent = state.currentCsvData.length;
     lastModified.textContent = 'Last loaded: ' + new Date().toLocaleTimeString();
-    
-    info.classList.remove('hidden');
 }
 
 /**

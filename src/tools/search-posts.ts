@@ -13,6 +13,14 @@ export interface PostResult {
 }
 
 /**
+ * Build LinkedIn content search URL with filters
+ */
+const buildSearchUrl = (keywords: string): string => {
+  const encodedKeywords = encodeURIComponent(keywords);
+  return `https://www.linkedin.com/search/results/content/?datePosted=%22past-month%22&keywords=${encodedKeywords}&origin=FACETED_SEARCH&sortBy=%22relevance%22`;
+};
+
+/**
  * Perform LinkedIn post search with authentication
  */
 const performSearch = async (
@@ -23,39 +31,14 @@ const performSearch = async (
   const page = await context.newPage();
   
   try {
-    // Navigate to LinkedIn feed
-    await page.goto('https://www.linkedin.com/feed/', { waitUntil: 'domcontentloaded' });
-
-    // Perform search
-    const searchInput = page.locator('input[aria-label="Search"], input[placeholder*="Search"]');
-    await searchInput.first().waitFor({ state: 'visible', timeout: 15000 });
-    await searchInput.first().click();
-    await searchInput.first().fill(keywords);
-    await page.keyboard.press('Enter');
-
-    // Wait for search results
-    await page.waitForURL('**/search/results/**', { timeout: 30000 }).catch(() => {});
-
-    // Apply filters for posts only
-    await page
-      .getByRole("button", { name: "Show all filters. Clicking" })
-      .click();
-    await page
-      .getByRole("button", { name: "Showing results of type:" })
-      .click();
-    await page
-      .getByRole("button", { name: "Show only results of type: Posts" })
-      .click();
-    await page
-      .locator("label")
-      .filter({ hasText: "Past month Filter by Past" })
-      .click();
-    await page
-      .getByRole("button", { name: "Apply current filters to show" })
-      .click();
+    // Navigate directly to search results with filters applied
+    const searchUrl = buildSearchUrl(keywords);
+    await page.goto(searchUrl, { waitUntil: 'domcontentloaded' });
+    
+    // Wait for search results to load
+    await page.waitForSelector('[data-view-tracking-scope]', { timeout: 20000 }).catch(() => {});
 
     // Scroll to load more results
-    await page.waitForSelector('[data-view-tracking-scope]', { timeout: 20000 }).catch(() => {});
     const seenUrns = new Set<string>();
     
     for (let i = 0; i < pagination; i++) {
@@ -178,11 +161,26 @@ export const handleLinkedInSearchPosts = async (params: SearchPostsParams) => {
       // Save results as CSV resource
       let resourceInfo = '';
       try {
-        const metadata = await saveSearchResource(results, keywords);
-        resourceInfo = `\n\nResults saved as resource: ${metadata.filename}`;
+        const saveResult = await saveSearchResource(results, keywords);
+        const fullPath = require('path').join(
+          process.env.APPDATA || require('os').homedir(),
+          'linkedin-mcp',
+          'resources',
+          'searches',
+          saveResult.filename
+        );
+        
+        const statsInfo = saveResult.duplicatesSkipped > 0
+          ? `${saveResult.newPostsAdded} new posts added, ${saveResult.duplicatesSkipped} duplicates skipped`
+          : `${saveResult.newPostsAdded} new posts added`;
+        
+        resourceInfo = `\n\n📊 Results saved to unified CSV: ${saveResult.filename}\n` +
+                      `   ${statsInfo}\n` +
+                      `   Total posts in database: ${saveResult.totalPosts}\n` +
+                      `   Full path: ${fullPath}`;
       } catch (error) {
-        console.warn('Failed to save search resource:', error);
-        resourceInfo = '\n\n(Note: Failed to save results as resource)';
+        console.error('Failed to save search resource:', error);
+        resourceInfo = '\n\n(Note: Failed to save results as resource - check console for details)';
       }
 
       let responseText = `Found ${results.length} LinkedIn posts for "${keywords}":\n\n`;
@@ -218,3 +216,30 @@ export const handleLinkedInSearchPosts = async (params: SearchPostsParams) => {
     };
   }
 };
+
+
+
+// Test execution - run this file directly with: npx tsx src/tools/search-posts.ts
+import { fileURLToPath } from 'url';
+import path from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const isMainModule = path.resolve(__filename) === path.resolve(process.argv[1]);
+
+if (isMainModule) {
+  console.log('🧪 Testing LinkedIn post search...\n');
+  
+  handleLinkedInSearchPosts({ 
+    keywords: '"ai engineering" AND "junior" AND "remote"', 
+    pagination: 2 
+  })
+    .then(result => {
+      console.log('\n✅ Test completed!');
+      console.log(JSON.stringify(result, null, 2));
+      process.exit(0);
+    })
+    .catch(error => {
+      console.error('\n❌ Test failed:', error);
+      process.exit(1);
+    });
+}
