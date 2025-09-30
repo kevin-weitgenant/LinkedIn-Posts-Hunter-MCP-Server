@@ -73,6 +73,9 @@ function createScreenshotCard(entry) {
     const card = document.createElement('div');
     card.className = 'screenshot-card';
     card.dataset.entryId = entry.id;
+    if (entry.applied === 1) {
+        card.classList.add('applied');
+    }
     
     // Header with metadata
     const header = document.createElement('div');
@@ -97,6 +100,13 @@ function createScreenshotCard(entry) {
     metadata.appendChild(keywordsElement);
     metadata.appendChild(dateElement);
     header.appendChild(metadata);
+
+    // Applied toggle/button group
+    const appliedControls = document.createElement('div');
+    appliedControls.className = 'screenshot-controls';
+    const appliedToggle = createAppliedToggle(entry.id, entry.applied === 1, card);
+    appliedControls.appendChild(appliedToggle);
+    header.appendChild(appliedControls);
     
     // Screenshot image container
     const imageContainer = document.createElement('div');
@@ -148,6 +158,67 @@ function createScreenshotCard(entry) {
     card.appendChild(actions);
     
     return card;
+}
+
+/**
+ * Create an applied status toggle button for screenshot card
+ */
+function createAppliedToggle(postId, isApplied, cardElement) {
+    const button = document.createElement('button');
+    button.className = `applied-toggle ${isApplied ? 'active' : 'inactive'}`;
+    button.setAttribute('data-post-id', postId);
+    button.title = isApplied ? 'Mark as not applied' : 'Mark as applied';
+
+    const icon = document.createElement('span');
+    icon.className = 'toggle-icon';
+    icon.textContent = isApplied ? '✓' : '○';
+    button.appendChild(icon);
+
+    const text = document.createElement('span');
+    text.className = 'toggle-text';
+    text.textContent = isApplied ? ' Applied' : ' Not Applied';
+    button.appendChild(text);
+
+    button.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await handleAppliedToggle(postId, !isApplied, button, cardElement);
+    });
+
+    return button;
+}
+
+/**
+ * Handle applied toggle action on screenshot card
+ */
+async function handleAppliedToggle(postId, newStatus, button, cardElement) {
+    button.classList.add('loading');
+    button.disabled = true;
+
+    try {
+        const { toggleAppliedStatus } = await import('./api.js');
+        const applied = await toggleAppliedStatus(postId, newStatus);
+
+        // Update button visuals
+        button.classList.remove('loading', 'active', 'inactive');
+        button.classList.add(applied ? 'active' : 'inactive');
+        button.title = applied ? 'Mark as not applied' : 'Mark as applied';
+        const icon = button.querySelector('.toggle-icon');
+        const text = button.querySelector('.toggle-text');
+        icon.textContent = applied ? '✓' : '○';
+        text.textContent = applied ? ' Applied' : ' Not Applied';
+
+        // Update card highlight
+        if (applied) {
+            cardElement.classList.add('applied');
+        } else {
+            cardElement.classList.remove('applied');
+        }
+    } catch (error) {
+        alert('Failed to update applied status: ' + error.message);
+    } finally {
+        button.classList.remove('loading');
+        button.disabled = false;
+    }
 }
 
 /**

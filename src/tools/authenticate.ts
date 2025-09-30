@@ -1,152 +1,147 @@
 import { loadAuthData, isAuthDataValid, clearAuthData, getAuthStatus } from '../auth/storage.js';
 import { performAuthentication } from '../auth/browser.js';
 
-export interface AuthenticateParams {
+export interface AuthParams {
+  action: 'authenticate' | 'status' | 'clear';
   force_reauth?: boolean;
 }
 
-export interface AuthStatusParams {
-  // No parameters needed
+/**
+ * Handle LinkedIn authentication MCP tool - unified handler for all auth operations
+ */
+export const handleLinkedInAuth = async (params: AuthParams) => {
+  const { action, force_reauth = false } = params;
+
+  try {
+    switch (action) {
+      case 'authenticate':
+        return await handleAuthenticate(force_reauth);
+        
+      case 'status':
+        return await handleAuthStatus();
+        
+      case 'clear':
+        return await handleClearAuth();
+        
+      default:
+        throw new Error(`Unknown action: ${action}`);
+    }
+  } catch (error) {
+    return {
+      content: [{
+        type: "text",
+        text: `Authentication ${action} error: ${error instanceof Error ? error.message : 'Unknown error occurred'}`
+      }]
+    };
+  }
+};
+
+/**
+ * Perform LinkedIn authentication
+ */
+async function handleAuthenticate(force_reauth: boolean) {
+  // Check if auth already exists and is valid (unless forced)
+  if (!force_reauth) {
+    const existing = await loadAuthData();
+    if (existing && await isAuthDataValid(existing)) {
+      return {
+        content: [{
+          type: "text",
+          text: "LinkedIn authentication already exists and is valid. Use force_reauth=true to re-authenticate."
+        }]
+      };
+    }
+  }
+
+  // Clear existing auth if force re-auth
+  if (force_reauth) {
+    await clearAuthData();
+  }
+
+  // Perform authentication flow
+  const result = await performAuthentication();
+  
+  if (result.success) {
+    return {
+      content: [{
+        type: "text",
+        text: `LinkedIn authentication completed successfully! (${result.reason})\nCredentials have been saved and will be used for future LinkedIn operations.`
+      }]
+    };
+  } else {
+    return {
+      content: [{
+        type: "text", 
+        text: `LinkedIn authentication failed or was cancelled.${result.error ? `\nError: ${result.error}` : ''}`
+      }]
+    };
+  }
 }
 
 /**
- * Handle LinkedIn authentication MCP tool
+ * Get LinkedIn authentication status
  */
-export const handleLinkedInAuthenticate = async (params: AuthenticateParams = {}) => {
-  const { force_reauth = false } = params;
+async function handleAuthStatus() {
+  const status = await getAuthStatus();
   
-  try {
-    // Check if auth already exists and is valid (unless forced)
-    if (!force_reauth) {
-      const existing = await loadAuthData();
-      if (existing && await isAuthDataValid(existing)) {
-        return {
-          content: [{
-            type: "text",
-            text: "LinkedIn authentication already exists and is valid. Use force_reauth=true to re-authenticate."
-          }]
-        };
-      }
-    }
-
-    // Clear existing auth if force re-auth
-    if (force_reauth) {
-      await clearAuthData();
-    }
-
-    // Perform authentication flow
-    const result = await performAuthentication();
-    
-    if (result.success) {
-      return {
-        content: [{
-          type: "text",
-          text: `LinkedIn authentication completed successfully! (${result.reason})\nCredentials have been saved and will be used for future LinkedIn operations.`
-        }]
-      };
-    } else {
-      return {
-        content: [{
-          type: "text", 
-          text: `LinkedIn authentication failed or was cancelled.${result.error ? `\nError: ${result.error}` : ''}`
-        }]
-      };
-    }
-    
-  } catch (error) {
+  if (!status.hasAuth) {
     return {
       content: [{
         type: "text",
-        text: `Authentication error: ${error instanceof Error ? error.message : 'Unknown error occurred'}`
+        text: "No LinkedIn authentication found. Run the linkedin_auth tool with action='authenticate' to log in."
       }]
     };
   }
-};
+
+  let statusText = "LinkedIn Authentication Status:\n";
+  statusText += `• Has credentials: ${status.hasAuth ? '✓' : '✗'}\n`;
+  statusText += `• Is valid: ${status.isValid ? '✓' : '✗'}\n`;
+  
+  if (status.createdAt) {
+    statusText += `• Created: ${status.createdAt.toLocaleString()}\n`;
+  }
+  
+  if (status.lastValidated) {
+    statusText += `• Last validated: ${status.lastValidated.toLocaleString()}\n`;
+  }
+  
+  if (status.age) {
+    statusText += `• Age: ${status.age}\n`;
+  }
+
+  if (!status.isValid) {
+    statusText += "\n⚠️  Authentication may be expired or invalid. Consider re-authenticating.";
+  }
+
+  return {
+    content: [{
+      type: "text",
+      text: statusText
+    }]
+  };
+}
 
 /**
- * Handle LinkedIn authentication status MCP tool
+ * Clear LinkedIn authentication
  */
-export const handleLinkedInAuthStatus = async (params: AuthStatusParams = {}) => {
-  try {
-    const status = await getAuthStatus();
-    
-    if (!status.hasAuth) {
-      return {
-        content: [{
-          type: "text",
-          text: "No LinkedIn authentication found. Run the linkedin_authenticate tool to log in."
-        }]
-      };
-    }
-
-    let statusText = "LinkedIn Authentication Status:\n";
-    statusText += `• Has credentials: ${status.hasAuth ? '✓' : '✗'}\n`;
-    statusText += `• Is valid: ${status.isValid ? '✓' : '✗'}\n`;
-    
-    if (status.createdAt) {
-      statusText += `• Created: ${status.createdAt.toLocaleString()}\n`;
-    }
-    
-    if (status.lastValidated) {
-      statusText += `• Last validated: ${status.lastValidated.toLocaleString()}\n`;
-    }
-    
-    if (status.age) {
-      statusText += `• Age: ${status.age}\n`;
-    }
-
-    if (!status.isValid) {
-      statusText += "\n⚠️  Authentication may be expired or invalid. Consider re-authenticating.";
-    }
-
+async function handleClearAuth() {
+  const status = await getAuthStatus();
+  
+  if (!status.hasAuth) {
     return {
       content: [{
         type: "text",
-        text: statusText
-      }]
-    };
-    
-  } catch (error) {
-    return {
-      content: [{
-        type: "text",
-        text: `Error checking authentication status: ${error instanceof Error ? error.message : 'Unknown error'}`
+        text: "No LinkedIn authentication found to clear."
       }]
     };
   }
-};
 
-/**
- * Handle LinkedIn clear authentication MCP tool
- */
-export const handleLinkedInClearAuth = async () => {
-  try {
-    const status = await getAuthStatus();
-    
-    if (!status.hasAuth) {
-      return {
-        content: [{
-          type: "text",
-          text: "No LinkedIn authentication found to clear."
-        }]
-      };
-    }
+  await clearAuthData();
 
-    await clearAuthData();
-
-    return {
-      content: [{
-        type: "text",
-        text: "LinkedIn authentication has been cleared. You will need to re-authenticate for future operations."
-      }]
-    };
-    
-  } catch (error) {
-    return {
-      content: [{
-        type: "text",
-        text: `Error clearing authentication: ${error instanceof Error ? error.message : 'Unknown error'}`
-      }]
-    };
-  }
-};
+  return {
+    content: [{
+      type: "text",
+      text: "LinkedIn authentication has been cleared. You will need to re-authenticate for future operations."
+    }]
+  };
+}

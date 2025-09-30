@@ -6,17 +6,19 @@ import {
 } from '../db/operations.js';
 import type { DbPost } from '../db/operations.js';
 
-export interface CsvManagerParams {
+export interface PostManagerParams {
   action: 'read' | 'update' | 'delete';
   ids?: number[];
   search_text?: string;
   date_from?: string;
   date_to?: string;
   limit?: number;
+  applied?: boolean;
   
   // For updates only
   new_description?: string;
   new_keywords?: string;
+  new_applied?: boolean;
 }
 
 /**
@@ -31,17 +33,19 @@ const formatPost = (post: DbPost): string => {
   }
   
   const date = new Date(post.search_date).toISOString().split('T')[0];
+  const appliedStatus = post.applied === 1 ? '✓ Applied' : '○ Not Applied';
   
   return `#${post.id} | Keywords: ${post.search_keywords}
      Link: ${post.post_link}
      Desc: ${desc}
-     Date: ${date}`;
+     Date: ${date}
+     Status: ${appliedStatus}`;
 };
 
 /**
  * Handle read action
  */
-const handleRead = (params: CsvManagerParams): string => {
+const handleRead = (params: PostManagerParams): string => {
   const limit = params.limit ?? 10;
   
   const posts = queryPosts({
@@ -49,6 +53,7 @@ const handleRead = (params: CsvManagerParams): string => {
     search_text: params.search_text,
     date_from: params.date_from,
     date_to: params.date_to,
+    applied: params.applied,
     limit: limit
   });
   
@@ -62,6 +67,10 @@ const handleRead = (params: CsvManagerParams): string => {
   
   if (posts.length >= limit) {
     result += ` (showing up to ${limit})`;
+  }
+  
+  if (params.applied !== undefined) {
+    result += ` (filtered by: ${params.applied ? 'applied' : 'not applied'})`;
   }
   
   result += ':\n\n';
@@ -78,9 +87,9 @@ const handleRead = (params: CsvManagerParams): string => {
 /**
  * Handle update action
  */
-const handleUpdate = (params: CsvManagerParams): string => {
-  if (!params.new_description && !params.new_keywords) {
-    return 'Error: Must provide new_description or new_keywords for update action.';
+const handleUpdate = (params: PostManagerParams): string => {
+  if (!params.new_description && !params.new_keywords && params.new_applied === undefined) {
+    return 'Error: Must provide new_description, new_keywords, or new_applied for update action.';
   }
   
   // First, get the posts to update based on filters
@@ -88,7 +97,8 @@ const handleUpdate = (params: CsvManagerParams): string => {
     ids: params.ids,
     search_text: params.search_text,
     date_from: params.date_from,
-    date_to: params.date_to
+    date_to: params.date_to,
+    applied: params.applied
   });
   
   if (postsToUpdate.length === 0) {
@@ -99,7 +109,8 @@ const handleUpdate = (params: CsvManagerParams): string => {
   
   const updateCount = updatePostsBulk(postIds, {
     new_description: params.new_description,
-    new_keywords: params.new_keywords
+    new_keywords: params.new_keywords,
+    new_applied: params.new_applied
   });
   
   return `✓ Updated ${updateCount} ${updateCount === 1 ? 'post' : 'posts'} (IDs: ${postIds.join(', ')})`;
@@ -108,13 +119,14 @@ const handleUpdate = (params: CsvManagerParams): string => {
 /**
  * Handle delete action
  */
-const handleDelete = (params: CsvManagerParams): string => {
+const handleDelete = (params: PostManagerParams): string => {
   // First, get the posts to delete based on filters
   const postsToDelete = queryPosts({
     ids: params.ids,
     search_text: params.search_text,
     date_from: params.date_from,
-    date_to: params.date_to
+    date_to: params.date_to,
+    applied: params.applied
   });
   
   if (postsToDelete.length === 0) {
@@ -128,9 +140,9 @@ const handleDelete = (params: CsvManagerParams): string => {
 };
 
 /**
- * Main handler for CSV manager tool
+ * Main handler for post manager tool
  */
-export const handleLinkedInManageCsv = async (params: CsvManagerParams) => {
+export const handleLinkedInManagePosts = async (params: PostManagerParams) => {
   try {
     let result: string;
     

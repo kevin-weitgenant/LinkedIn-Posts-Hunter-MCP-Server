@@ -7,6 +7,7 @@ export interface DbPost {
   description: string;
   search_date: string;
   screenshot_path: string;
+  applied: number; // SQLite stores as INTEGER (0 or 1), convert to boolean in code
 }
 
 /**
@@ -18,17 +19,18 @@ export function insertPost(
   link: string,
   description: string,
   searchDate: string,
-  screenshotPath: string = ''
+  screenshotPath: string = '',
+  applied: boolean = false
 ): number | null {
   const db = getDatabase();
   
   try {
     const stmt = db.prepare(`
-      INSERT INTO posts (search_keywords, post_link, description, search_date, screenshot_path)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO posts (search_keywords, post_link, description, search_date, screenshot_path, applied)
+      VALUES (?, ?, ?, ?, ?, ?)
     `);
     
-    const result = stmt.run(keywords, link, description, searchDate, screenshotPath);
+    const result = stmt.run(keywords, link, description, searchDate, screenshotPath, applied ? 1 : 0);
     return result.lastInsertRowid as number;
   } catch (error: any) {
     // SQLITE_CONSTRAINT_UNIQUE means duplicate post_link
@@ -87,13 +89,15 @@ export function updatePost(post: DbPost): boolean {
     UPDATE posts 
     SET search_keywords = ?,
         description = ?,
-        screenshot_path = ?
+        screenshot_path = ?,
+        applied = ?
     WHERE id = ?
   `);
   const result = stmt.run(
     post.search_keywords,
     post.description,
     post.screenshot_path,
+    post.applied,
     post.id
   );
   return result.changes > 0;
@@ -110,7 +114,7 @@ export function getPostById(id: number): DbPost | null {
 }
 
 /**
- * Query posts with filters - supports search_text, date range, IDs, limit
+ * Query posts with filters - supports search_text, date range, IDs, limit, applied status
  */
 export function queryPosts(params: {
   ids?: number[];
@@ -118,6 +122,7 @@ export function queryPosts(params: {
   date_from?: string;
   date_to?: string;
   limit?: number;
+  applied?: boolean;
 }): DbPost[] {
   const db = getDatabase();
   
@@ -149,6 +154,12 @@ export function queryPosts(params: {
     bindings.push(params.date_to);
   }
   
+  // Filter by applied status
+  if (params.applied !== undefined) {
+    sql += ` AND applied = ?`;
+    bindings.push(params.applied ? 1 : 0);
+  }
+  
   // Order by date (newest first)
   sql += ' ORDER BY search_date DESC';
   
@@ -170,6 +181,7 @@ export function updatePostsBulk(
   updates: {
     new_description?: string;
     new_keywords?: string;
+    new_applied?: boolean;
   }
 ): number {
   const db = getDatabase();
@@ -186,6 +198,11 @@ export function updatePostsBulk(
   if (updates.new_keywords) {
     setClauses.push('search_keywords = ?');
     bindings.push(updates.new_keywords);
+  }
+  
+  if (updates.new_applied !== undefined) {
+    setClauses.push('applied = ?');
+    bindings.push(updates.new_applied ? 1 : 0);
   }
   
   if (setClauses.length === 0) {
@@ -217,4 +234,35 @@ export function deletePostsBulk(postIds: number[]): number {
   const stmt = db.prepare(sql);
   const result = stmt.run(...postIds);
   return result.changes;
+}
+
+/**
+ * Update applied status for a specific post
+ * Returns true if updated, false if not found
+ */
+export function updateAppliedStatus(id: number, applied: boolean): boolean {
+  const db = getDatabase();
+  const stmt = db.prepare('UPDATE posts SET applied = ? WHERE id = ?');
+  const result = stmt.run(applied ? 1 : 0, id);
+  return result.changes > 0;
+}
+
+/**
+ * Toggle applied status for a specific post
+ * Returns the new applied status, or null if post not found
+ */
+export function toggleAppliedStatus(id: number): boolean | null {
+  const db = getDatabase();
+  
+  // Get current status
+  const post = getPostById(id);
+  if (!post) {
+    return null;
+  }
+  
+  // Toggle it
+  const newStatus = post.applied === 0;
+  updateAppliedStatus(id, newStatus);
+  
+  return newStatus;
 }

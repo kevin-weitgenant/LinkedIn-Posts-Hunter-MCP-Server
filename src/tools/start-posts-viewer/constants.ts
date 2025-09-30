@@ -1,4 +1,4 @@
-// Configuration constants for the CSV viewer server
+// Configuration constants for the post viewer server
 export const CONSTANTS = {
   DEFAULT_PORT: 4327,
   IGNORED_PATTERNS: 'node_modules,.git',

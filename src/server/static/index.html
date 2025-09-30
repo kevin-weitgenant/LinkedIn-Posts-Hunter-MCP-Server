@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LinkedIn CSV Viewer</title>
+    <title>LinkedIn Post Viewer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -37,7 +37,7 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <h2 class="text-lg font-semibold text-gray-900">LinkedIn Search Results Database</h2>
-                            <div id="csvInfo" class="text-sm text-gray-600 mt-1">
+                            <div id="postInfo" class="text-sm text-gray-600 mt-1">
                                 <span id="rowCount"></span> posts loaded • 
                                 <span id="lastModified"></span>
                             </div>
@@ -45,11 +45,11 @@
                     </div>
                 </div>
 
-                <!-- CSV Table Container -->
+                <!-- Post Table Container -->
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200">
             <div id="loadingSpinner" class="hidden p-8 text-center">
                 <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <p class="mt-2 text-gray-600">Loading CSV data...</p>
+                <p class="mt-2 text-gray-600">Loading posts...</p>
             </div>
 
             <div id="errorMessage" class="hidden p-6 text-center text-red-600">
@@ -59,9 +59,9 @@
                 </button>
             </div>
 
-            <div id="csvTableContainer" class="hidden">
+            <div id="postTableContainer" class="hidden">
                 <div class="overflow-x-auto">
-                    <table id="csvTable" class="w-full">
+                    <table id="postTable" class="w-full">
                         <thead class="bg-gray-50 border-b border-gray-200">
                             <!-- Headers will be populated by JavaScript -->
                         </thead>
@@ -112,7 +112,7 @@
                                 <ul class="list-disc list-inside space-y-1">
                                     <li>Click on any cell in the table to edit it directly</li>
                                     <li>Changes will be highlighted until you save them</li>
-                                    <li>The page will automatically refresh when Claude edits the CSV files</li>
+                                    <li>The page will automatically refresh when Claude updates the database</li>
                                     <li>Use "Add Row" to insert new LinkedIn posts manually</li>
                                 </ul>
                             </div>

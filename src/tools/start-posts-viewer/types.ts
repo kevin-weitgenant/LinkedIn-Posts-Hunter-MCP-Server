@@ -1,8 +1,8 @@
 import { IncomingMessage, ServerResponse } from 'http';
 
-// Type definitions for CSV viewer
+// Type definitions for post viewer
 
-export interface CsvViewerResult {
+export interface PostViewerResult {
   port: number;
   status: string;
   url: string;
@@ -14,8 +14,3 @@ export type MiddlewareRequest = IncomingMessage;
 export type MiddlewareResponse = ServerResponse;
 
 export type NextFunction = () => void;
-
-export interface CsvFileInfo {
-  filename: string;
-  displayName: string;
-}

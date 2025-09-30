@@ -5,14 +5,10 @@ import {
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 
-import { 
-  handleLinkedInAuthenticate, 
-  handleLinkedInAuthStatus,
-  handleLinkedInClearAuth 
-} from './tools/authenticate.js';
+import { handleLinkedInAuth } from './tools/authenticate.js';
 import { handleLinkedInSearchPosts } from './tools/search-posts.js';
-import { handleLinkedInManageCsv } from './tools/csv-manager.js';
-import { startCsvViewer } from './tools/start-csv-viewer/index.js';
+import { handleLinkedInManagePosts } from './tools/posts-manager.js';
+import { startPostViewer } from './tools/start-posts-viewer/index.js';
 
 // Initialize MCP server
 const server = new Server(
@@ -32,33 +28,23 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
       {
-        name: "linkedin_authenticate",
-        description: "Launch LinkedIn authentication flow and save credentials for future use",
+        name: "linkedin_auth",
+        description: "Manage LinkedIn authentication: authenticate, check status, or clear credentials",
         inputSchema: {
           type: "object",
           properties: {
+            action: {
+              type: "string",
+              enum: ["authenticate", "status", "clear"],
+              description: "Action to perform: 'authenticate' to log in, 'status' to check credentials, 'clear' to remove credentials"
+            },
             force_reauth: {
               type: "boolean",
-              description: "Force new authentication even if valid credentials exist",
+              description: "Force new authentication even if valid credentials exist (only used with 'authenticate' action)",
               default: false
             }
-          }
-        },
-      },
-      {
-        name: "linkedin_auth_status", 
-        description: "Check current LinkedIn authentication status and credential information",
-        inputSchema: {
-          type: "object",
-          properties: {}
-        },
-      },
-      {
-        name: "linkedin_clear_auth",
-        description: "Clear stored LinkedIn authentication credentials",
-        inputSchema: {
-          type: "object", 
-          properties: {}
+          },
+          required: ["action"]
         },
       },
       {
@@ -83,8 +69,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
-        name: "start_csv_viewer",
-        description: "Start a web-based CSV viewer and editor for LinkedIn search results with live reload functionality",
+        name: "start visualization page",
+        description: "Start a live server visualization page, showing the collected scraped data.",
         inputSchema: {
           type: "object",
           properties: {},
@@ -92,8 +78,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
-        name: "linkedin_manage_csv",
-        description: "Read, update, or delete posts from the LinkedIn database. Filters by ID, keywords, content, or date range. Only returns matching entries to minimize context.",
+        name: "linkedin_manage_posts",
+        description: "Read, update, or delete posts from the LinkedIn database. Filters by ID, keywords, content, date range, or applied status. Only returns matching entries to minimize context.",
         inputSchema: {
           type: "object",
           properties: {
@@ -126,6 +112,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               minimum: 1,
               maximum: 50
             },
+            applied: {
+              type: "boolean",
+              description: "Filter by applied status: true for applied posts, false for not applied"
+            },
             new_description: {
               type: "string",
               description: "New description text (for update action only)"
@@ -133,6 +123,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             new_keywords: {
               type: "string",
               description: "New keywords text (for update action only)"
+            },
+            new_applied: {
+              type: "boolean",
+              description: "New applied status (for update action only): true to mark as applied, false to mark as not applied"
             }
           },
           required: ["action"]
@@ -148,29 +142,23 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   try {
     switch (name) {
-      case "linkedin_authenticate":
-        return await handleLinkedInAuthenticate(params as any);
-        
-      case "linkedin_auth_status":
-        return await handleLinkedInAuthStatus(params as any);
-        
-      case "linkedin_clear_auth":
-        return await handleLinkedInClearAuth();
+      case "linkedin_auth":
+        return await handleLinkedInAuth(params as any);
         
       case "linkedin_search_posts":
         return await handleLinkedInSearchPosts(params as any);
         
-      case "start_csv_viewer":
-        const result = await startCsvViewer();
+      case "start visualization page":
+        const result = await startPostViewer();
         return {
           content: [{
             type: "text",
-            text: `CSV Viewer started successfully!\n\n${result.message}\n\nThe browser should have opened automatically. If not, visit: ${result.url}`
+            text: `Post Viewer started successfully!\n\n${result.message}\n\nThe browser should have opened automatically. If not, visit: ${result.url}`
           }]
         };
         
-      case "linkedin_manage_csv":
-        return await handleLinkedInManageCsv(params as any);
+      case "linkedin_manage_posts":
+        return await handleLinkedInManagePosts(params as any);
         
       default:
         throw new Error(`Unknown tool: ${name}`);

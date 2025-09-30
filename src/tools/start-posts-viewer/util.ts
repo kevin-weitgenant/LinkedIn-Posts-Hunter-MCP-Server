@@ -2,9 +2,9 @@ import path from 'path';
 import { CONSTANTS } from './constants.js';
 
 /**
- * Format a CSV filename for display by removing timestamp and cleaning up
+ * Format a post filename for display by removing timestamp and cleaning up
  */
-export function formatCsvDisplayName(filename: string): string {
+export function formatPostDisplayName(filename: string): string {
   return filename
     .replace(CONSTANTS.TIMESTAMP_PREFIX_REGEX, '') // Remove timestamp prefix
     .replace('.csv', '')

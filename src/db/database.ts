@@ -37,15 +37,39 @@ function initializeSchema(): void {
       post_link TEXT UNIQUE NOT NULL,
       description TEXT NOT NULL,
       search_date TEXT NOT NULL,
-      screenshot_path TEXT DEFAULT ''
+      screenshot_path TEXT DEFAULT '',
+      applied INTEGER DEFAULT 0
     );
     
     CREATE INDEX IF NOT EXISTS idx_posts_link ON posts(post_link);
     CREATE INDEX IF NOT EXISTS idx_posts_date ON posts(search_date);
+    CREATE INDEX IF NOT EXISTS idx_posts_applied ON posts(applied);
   `);
   
-  // Use stderr to avoid breaking JSON-RPC protocol on stdout
+  // Migration: Add applied column to existing databases
+  migrateDatabase();
+}
 
+/**
+ * Run database migrations for existing databases
+ * Adds new columns if they don't exist
+ */
+function migrateDatabase(): void {
+  try {
+    // Check if 'applied' column exists
+    const tableInfo = db!.prepare("PRAGMA table_info(posts)").all() as Array<{ name: string }>;
+    const hasAppliedColumn = tableInfo.some(col => col.name === 'applied');
+    
+    if (!hasAppliedColumn) {
+      // Add applied column with default value
+      db!.exec(`
+        ALTER TABLE posts ADD COLUMN applied INTEGER DEFAULT 0;
+        CREATE INDEX IF NOT EXISTS idx_posts_applied ON posts(applied);
+      `);
+    }
+  } catch (error) {
+    // Silently ignore migration errors (e.g., table doesn't exist yet)
+  }
 }
 
 /**

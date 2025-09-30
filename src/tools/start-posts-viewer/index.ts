@@ -4,21 +4,21 @@ import { fileURLToPath } from 'url';
 import fs from 'fs';
 import { getSearchResourcesPath, getScreenshotsPath, getResourcesPath } from '../../utils/paths.js';
 import {
-  CsvViewerResult,
+  PostViewerResult,
   MiddlewareRequest,
   MiddlewareResponse,
   NextFunction
 } from './types.js';
 import { CONSTANTS } from './constants.js';
-import { formatCsvDisplayName, validateFilePath } from './util.js';
-import { getAllPosts, deletePostById, updatePost, getPostById } from '../../db/operations.js';
+import { formatPostDisplayName, validateFilePath } from './util.js';
+import { getAllPosts, deletePostById, updatePost, getPostById, updateAppliedStatus } from '../../db/operations.js';
 import type { DbPost } from '../../db/operations.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Re-export types for external consumers
-export type { CsvViewerResult } from './types.js';
+export type { PostViewerResult } from './types.js';
 
 /**
  * Handle the /api/posts endpoint - returns all posts from database as JSON
@@ -180,6 +180,68 @@ function handleDeletePostRequest(req: MiddlewareRequest, res: MiddlewareResponse
 }
 
 /**
+ * Handle PATCH /api/posts/:id/applied endpoint - updates applied status for a post
+ */
+function handleUpdateAppliedRequest(req: MiddlewareRequest, res: MiddlewareResponse): void {
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  
+  try {
+    if (!req.url) {
+      throw new Error('Request URL not found');
+    }
+    
+    const urlParts = req.url.split('/');
+    const id = parseInt(urlParts[3]); // /api/posts/:id/applied
+    
+    if (isNaN(id)) {
+      res.writeHead(400);
+      res.end(JSON.stringify({ error: 'Invalid post ID' }));
+      return;
+    }
+    
+    let body = '';
+    req.on('data', chunk => {
+      body += chunk.toString();
+    });
+    
+    req.on('end', () => {
+      try {
+        const data = body ? JSON.parse(body) : {};
+        const applied = data.applied !== undefined ? data.applied : undefined;
+        
+        if (applied === undefined) {
+          res.writeHead(400);
+          res.end(JSON.stringify({ error: 'Missing applied status in request body' }));
+          return;
+        }
+        
+        const updated = updateAppliedStatus(id, applied);
+        
+        if (updated) {
+          res.writeHead(200);
+          res.end(JSON.stringify({ 
+            success: true, 
+            applied: applied,
+            message: `Post marked as ${applied ? 'applied' : 'not applied'}`
+          }));
+        } else {
+          res.writeHead(404);
+          res.end(JSON.stringify({ error: 'Post not found' }));
+        }
+      } catch (error) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'Invalid request body' }));
+      }
+    });
+    
+  } catch (error) {
+    res.writeHead(500);
+    res.end(JSON.stringify({ error: 'Failed to update applied status' }));
+  }
+}
+
+/**
  * Create middleware function to handle API requests
  */
 function createApiMiddleware() {
@@ -193,6 +255,12 @@ function createApiMiddleware() {
     // POST /api/posts/bulk-update - Update multiple posts
     if (req.url === '/api/posts/bulk-update' && req.method === 'POST') {
       handleBulkUpdatePostsRequest(req, res);
+      return;
+    }
+    
+    // PATCH /api/posts/:id/applied - Update applied status
+    if (req.url?.match(/^\/api\/posts\/\d+\/applied$/) && req.method === 'PATCH') {
+      handleUpdateAppliedRequest(req, res);
       return;
     }
     
@@ -221,13 +289,13 @@ function createApiMiddleware() {
 /**
  * Build the live-server configuration object
  */
-function buildServerConfig(port: number, staticRoot: string, csvWatchPath: string, dbPath: string) {
+function buildServerConfig(port: number, staticRoot: string, resourcesWatchPath: string, dbPath: string) {
   return {
     port,
     root: staticRoot,
     open: true,
     file: 'index.html',
-    watch: [csvWatchPath, dbPath], // Watch CSV directory and database file for changes
+    watch: [resourcesWatchPath, dbPath], // Watch resources directory and database file for changes
     ignore: CONSTANTS.IGNORED_PATTERNS,
     logLevel: CONSTANTS.LOG_LEVEL as 0 | 1 | 2,
     middleware: [createApiMiddleware()]
@@ -235,18 +303,18 @@ function buildServerConfig(port: number, staticRoot: string, csvWatchPath: strin
 }
 
 /**
- * Start the CSV viewer server using live-server
- * Opens browser automatically and watches CSV files for changes
+ * Start the post viewer server using live-server
+ * Opens browser automatically and watches database for changes
  */
-export async function startCsvViewer(): Promise<CsvViewerResult> {
+export async function startPostViewer(): Promise<PostViewerResult> {
   // Point to source directory since static files aren't copied during build
-  // __dirname will be build/tools/start-csv-viewer/ so we go up to build/tools/, then build/, then project root
+  // __dirname will be build/tools/start-post-viewer/ so we go up to build/tools/, then build/, then project root
   const projectRoot = path.resolve(__dirname, '..', '..', '..');
   const staticRoot = path.join(projectRoot, 'src', 'server', 'static');
-  const csvWatchPath = getSearchResourcesPath();
+  const resourcesWatchPath = getSearchResourcesPath();
   const dbPath = path.join(getResourcesPath(), 'linkedin.db');
   
-  const serverConfig = buildServerConfig(CONSTANTS.DEFAULT_PORT, staticRoot, csvWatchPath, dbPath);
+  const serverConfig = buildServerConfig(CONSTANTS.DEFAULT_PORT, staticRoot, resourcesWatchPath, dbPath);
   
   try {
     liveServer.start(serverConfig);
@@ -255,16 +323,16 @@ export async function startCsvViewer(): Promise<CsvViewerResult> {
       port: CONSTANTS.DEFAULT_PORT,
       status: 'started',
       url: `http://localhost:${CONSTANTS.DEFAULT_PORT}`,
-      message: `CSV viewer started at http://localhost:${CONSTANTS.DEFAULT_PORT}. Browser should open automatically. Watching ${csvWatchPath} and database for changes.`
+      message: `Post viewer started at http://localhost:${CONSTANTS.DEFAULT_PORT}. Browser should open automatically. Watching ${resourcesWatchPath} and database for changes.`
     };
   } catch (error) {
-    throw new Error(`Failed to start CSV viewer: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(`Failed to start post viewer: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
 /**
- * Stop the CSV viewer server
+ * Stop the post viewer server
  */
-export function stopCsvViewer(): void {
+export function stopPostViewer(): void {
   liveServer.shutdown();
 }

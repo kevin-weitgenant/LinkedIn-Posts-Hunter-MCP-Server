@@ -1,6 +1,6 @@
 import { showLoading, showError, showStatus } from './ui.js';
 import { state, setState } from './state.js';
-import { renderCsvTable, showCsvInfo } from './ui.js';
+import { renderPostTable, showPostInfo } from './ui.js';
 
 /**
  * Load all posts from database
@@ -22,8 +22,8 @@ export async function loadPosts() {
             hasUnsavedChanges: false,
         });
 
-        renderCsvTable();
-        showCsvInfo();
+        renderPostTable();
+        showPostInfo();
         showStatus(`Loaded ${posts.length} posts from database`, 'success');
 
     } catch (error) {
@@ -92,6 +92,31 @@ export async function deletePost(postId) {
         await loadPosts();
 
         return true;
+    } catch (error) {
+        throw error;
+    }
+}
+
+/**
+ * Toggle applied status for a post
+ */
+export async function toggleAppliedStatus(postId, applied) {
+    try {
+        const response = await fetch(`/api/posts/${encodeURIComponent(postId)}/applied`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ applied }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to update applied status');
+        }
+
+        const result = await response.json();
+        return result.applied;
     } catch (error) {
         throw error;
     }

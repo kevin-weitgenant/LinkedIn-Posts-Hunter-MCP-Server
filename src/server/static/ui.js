@@ -1,15 +1,15 @@
 import { state, setState } from './state.js';
 
 /**
- * Render the CSV data as an editable table
+ * Render the post data as an editable table
  */
-export function renderCsvTable() {
+export function renderPostTable() {
     if (state.currentData.length === 0) {
         showEmptyState();
         return;
     }
     
-    const table = document.getElementById('csvTable');
+    const table = document.getElementById('postTable');
     const headers = Object.keys(state.currentData[0]);
     
     // Render headers
@@ -40,11 +40,25 @@ export function renderCsvTable() {
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-gray-50';
         
+        // Add applied class if the post is applied
+        if (row.applied === 1) {
+            tr.classList.add('post-row-applied');
+        }
+        
         headers.forEach((header) => {
             const td = document.createElement('td');
-            td.className = 'px-6 py-4 text-sm text-gray-900 editable-cell';
-            td.textContent = row[header] || '';
-            td.addEventListener('click', () => makeEditable(td, rowIndex, header));
+            
+            // Special handling for 'applied' column - render as toggle button
+            if (header === 'applied') {
+                td.className = 'px-6 py-4 text-sm text-gray-900';
+                const toggleBtn = createAppliedToggle(row.id, row.applied === 1, rowIndex);
+                td.appendChild(toggleBtn);
+            } else {
+                td.className = 'px-6 py-4 text-sm text-gray-900 editable-cell';
+                td.textContent = row[header] || '';
+                td.addEventListener('click', () => makeEditable(td, rowIndex, header));
+            }
+            
             tr.appendChild(td);
         });
         
@@ -61,7 +75,81 @@ export function renderCsvTable() {
         tbody.appendChild(tr);
     });
     
-    showCsvTable();
+    showPostTable();
+}
+
+/**
+ * Create an applied status toggle button
+ */
+function createAppliedToggle(postId, isApplied, rowIndex) {
+    const button = document.createElement('button');
+    button.className = `applied-toggle ${isApplied ? 'active' : 'inactive'}`;
+    button.setAttribute('data-post-id', postId);
+    button.setAttribute('data-row-index', rowIndex);
+    button.title = isApplied ? 'Mark as not applied' : 'Mark as applied';
+    
+    // Icon/text
+    const icon = document.createElement('span');
+    icon.className = 'toggle-icon';
+    icon.textContent = isApplied ? '✓' : '○';
+    button.appendChild(icon);
+    
+    const text = document.createElement('span');
+    text.className = 'toggle-text';
+    text.textContent = isApplied ? ' Applied' : ' Not Applied';
+    button.appendChild(text);
+    
+    // Click handler
+    button.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await handleAppliedToggle(postId, !isApplied, rowIndex, button);
+    });
+    
+    return button;
+}
+
+/**
+ * Handle applied status toggle
+ */
+async function handleAppliedToggle(postId, newStatus, rowIndex, button) {
+    // Add loading state
+    button.classList.add('loading');
+    button.disabled = true;
+    
+    try {
+        // Import toggleAppliedStatus dynamically to avoid circular dependency
+        const { toggleAppliedStatus } = await import('./api.js');
+        const applied = await toggleAppliedStatus(postId, newStatus);
+        
+        // Update state
+        state.currentData[rowIndex].applied = applied ? 1 : 0;
+        
+        // Update button
+        button.classList.remove('loading', 'active', 'inactive');
+        button.classList.add(applied ? 'active' : 'inactive');
+        button.title = applied ? 'Mark as not applied' : 'Mark as applied';
+        
+        const icon = button.querySelector('.toggle-icon');
+        const text = button.querySelector('.toggle-text');
+        icon.textContent = applied ? '✓' : '○';
+        text.textContent = applied ? ' Applied' : ' Not Applied';
+        
+        // Update row styling
+        const row = button.closest('tr');
+        if (applied) {
+            row.classList.add('post-row-applied');
+        } else {
+            row.classList.remove('post-row-applied');
+        }
+        
+        showStatus(`Post marked as ${applied ? 'applied' : 'not applied'}`, 'success');
+        
+    } catch (error) {
+        showStatus('Failed to update applied status: ' + error.message, 'error');
+    } finally {
+        button.classList.remove('loading');
+        button.disabled = false;
+    }
 }
 
 /**
@@ -118,11 +206,11 @@ export function addNewRow() {
     });
     
     state.currentData.push(newRow);
-    renderCsvTable();
+    renderPostTable();
     markAsModified();
     
     // Scroll to the new row
-    const table = document.getElementById('csvTable');
+    const table = document.getElementById('postTable');
     const tbody = table.querySelector('tbody');
     const lastRow = tbody.lastElementChild;
     lastRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -161,9 +249,9 @@ function markAsModified() {
 }
 
 /**
- * Show CSV info
+ * Show post info
  */
-export function showCsvInfo() {
+export function showPostInfo() {
     const rowCount = document.getElementById('rowCount');
     const lastModified = document.getElementById('lastModified');
     
@@ -179,7 +267,7 @@ export function showLoading(show) {
     if (show) {
         spinner.classList.remove('hidden');
         hideError();
-        hideCsvTable();
+        hidePostTable();
         hideEmptyState();
     } else {
         spinner.classList.add('hidden');
@@ -191,7 +279,7 @@ export function showError(message) {
     const errorText = document.getElementById('errorText');
     errorText.textContent = message;
     errorDiv.classList.remove('hidden');
-    hideCsvTable();
+    hidePostTable();
     hideEmptyState();
 }
 
@@ -199,19 +287,19 @@ function hideError() {
     document.getElementById('errorMessage').classList.add('hidden');
 }
 
-function showCsvTable() {
-    document.getElementById('csvTableContainer').classList.remove('hidden');
+function showPostTable() {
+    document.getElementById('postTableContainer').classList.remove('hidden');
     hideEmptyState();
     hideError();
 }
 
-function hideCsvTable() {
-    document.getElementById('csvTableContainer').classList.add('hidden');
+function hidePostTable() {
+    document.getElementById('postTableContainer').classList.add('hidden');
 }
 
 function showEmptyState() {
     document.getElementById('emptyState').classList.remove('hidden');
-    hideCsvTable();
+    hidePostTable();
     hideError();
 }
 
