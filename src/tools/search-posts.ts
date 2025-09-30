@@ -1,9 +1,10 @@
 import { chromium, Browser, BrowserContext, Page } from 'playwright';
 import { loadAuthData, isAuthDataValid } from '../auth/storage.js';
-import { saveSearchResource } from '../utils/resource-storage.js';
+import { saveSearchResource, saveSearchResourceToDb } from '../utils/resource-storage.js';
 import { getScreenshotsPath } from '../utils/paths.js';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 
 export interface SearchPostsParams {
   keywords: string;
@@ -183,29 +184,30 @@ export const handleLinkedInSearchPosts = async (params: SearchPostsParams) => {
         };
       }
 
-      // Save results as CSV resource
+      // Save results to SQLite database
       let resourceInfo = '';
       try {
-        const saveResult = await saveSearchResource(results, keywords);
-        const fullPath = require('path').join(
-          process.env.APPDATA || require('os').homedir(),
+        const saveResult = await saveSearchResourceToDb(results, keywords);
+        
+        const dbPath = path.join(
+          process.env.APPDATA || os.homedir(),
           'linkedin-mcp',
           'resources',
-          'searches',
-          saveResult.filename
+          'linkedin.db'
         );
         
         const statsInfo = saveResult.duplicatesSkipped > 0
           ? `${saveResult.newPostsAdded} new posts added, ${saveResult.duplicatesSkipped} duplicates skipped`
           : `${saveResult.newPostsAdded} new posts added`;
         
-        resourceInfo = `\n\n📊 Results saved to unified CSV: ${saveResult.filename}\n` +
+        resourceInfo = `\n\n💾 Results saved to database\n` +
                       `   ${statsInfo}\n` +
                       `   Total posts in database: ${saveResult.totalPosts}\n` +
-                      `   Full path: ${fullPath}`;
+                      `   Database: ${dbPath}`;
       } catch (error) {
-        console.error('Failed to save search resource:', error);
-        resourceInfo = '\n\n(Note: Failed to save results as resource - check console for details)';
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        console.error('Failed to save search results:', error);
+        resourceInfo = `\n\n⚠️ Failed to save to database: ${errorMsg}`;
       }
 
       let responseText = `Found ${results.length} LinkedIn posts for "${keywords}":\n\n`;

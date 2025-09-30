@@ -2,7 +2,7 @@
   "name": "linkedin-playwright-mcp",
   "version": "1.0.0",
   "description": "LinkedIn MCP server with Playwright automation for authentication and post searching",
-  "main": "build/index.js",
+  "main": "build/src/index.js",
   "type": "module",
   "scripts": {
     "clean": "rimraf build",
@@ -25,10 +25,12 @@
   "license": "ISC",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.18.2",
+    "better-sqlite3": "^11.0.0",
     "live-server": "^1.2.2",
     "playwright": "^1.55.1"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11",
     "@types/live-server": "^1.2.3",
     "@types/node": "^24.5.2",
     "rimraf": "^6.0.1",
