@@ -5,7 +5,10 @@ import {
   handleBulkUpdatePosts,
   handleDeletePost,
   handleUpdateAppliedStatus,
-  handleGetScreenshot
+  handleGetScreenshot,
+  handleGetFilterState,
+  handleUpdateFilterState,
+  handleResetFilterState
 } from './api-handlers.js';
 
 /**
@@ -23,6 +26,11 @@ export function createApiRouter(): Router {
   
   // Screenshot routes
   router.get('/screenshots/:filename', handleGetScreenshot);
+  
+  // Filter state routes
+  router.get('/filter-state', handleGetFilterState);
+  router.put('/filter-state', handleUpdateFilterState);
+  router.delete('/filter-state', handleResetFilterState);
   
   return router;
 }

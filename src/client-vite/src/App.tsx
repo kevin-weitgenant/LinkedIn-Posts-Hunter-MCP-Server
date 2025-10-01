@@ -1,17 +1,26 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
+import { Database } from 'lucide-react'
 import { Post } from './types'
 import { TableView } from './components/TableView'
 import { FilterView } from './components/FilterView'
 import { LinkedInPostCard } from './components/LinkedInPostCard'
 
-type TabType = 'screenshots' | 'table'
+type TabType = 'posts' | 'db'
 export type AppliedFilterType = 'all' | 'applied' | 'not-applied'
+
+interface FilterState {
+  keywordFilter: string
+  appliedFilter: AppliedFilterType
+  startDate: string | null
+  endDate: string | null
+  idFilter: string
+}
 
 function App() {
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<TabType>('screenshots')
+  const [activeTab, setActiveTab] = useState<TabType>('posts')
   const [keywordFilter, setKeywordFilter] = useState('')
   const [appliedFilter, setAppliedFilter] =
     useState<AppliedFilterType>('all')
@@ -20,6 +29,10 @@ function App() {
   const [idFilter, setIdFilter] = useState('')
   const [loadingStates, setLoadingStates] = useState<Record<number, boolean>>({})
   const [cardErrorMessage, setCardErrorMessage] = useState<string | null>(null)
+  
+  // Track if we're currently syncing to avoid infinite loops
+  const isSyncingRef = useRef(false)
+  const pendingUpdateRef = useRef<NodeJS.Timeout | null>(null)
 
   const setLoadingPost = (postId: number, loading: boolean) => {
     setLoadingStates(prev => ({ ...prev, [postId]: loading }))
@@ -135,6 +148,97 @@ function App() {
     return () => clearInterval(interval)
   }, [])
 
+  // Fetch filter state from API
+  const fetchFilterState = async () => {
+    try {
+      const response = await fetch('/api/filter-state')
+      if (!response.ok) {
+        return // Silently fail - filter state is optional
+      }
+      const state: FilterState = await response.json()
+      
+      // Only update if not currently syncing (avoid loops)
+      if (!isSyncingRef.current) {
+        isSyncingRef.current = true
+        
+        // Update React state with fetched values
+        setKeywordFilter(state.keywordFilter)
+        setAppliedFilter(state.appliedFilter)
+        setStartDate(state.startDate ? new Date(state.startDate) : null)
+        setEndDate(state.endDate ? new Date(state.endDate) : null)
+        setIdFilter(state.idFilter)
+        
+        // Reset sync flag after a short delay
+        setTimeout(() => {
+          isSyncingRef.current = false
+        }, 100)
+      }
+    } catch (err) {
+      // Silently fail - filter state is optional
+    }
+  }
+
+  // Poll filter state every 1.5 seconds
+  useEffect(() => {
+    fetchFilterState()
+    const interval = setInterval(fetchFilterState, 1500)
+    return () => clearInterval(interval)
+  }, [])
+
+  // Debounced function to sync filter state to API
+  const syncFilterStateToAPI = useCallback((updates: Partial<FilterState>) => {
+    // Clear any pending update
+    if (pendingUpdateRef.current) {
+      clearTimeout(pendingUpdateRef.current)
+    }
+    
+    // Schedule new update after 500ms
+    pendingUpdateRef.current = setTimeout(async () => {
+      try {
+        isSyncingRef.current = true
+        await fetch('/api/filter-state', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates),
+        })
+        
+        // Reset sync flag after a delay
+        setTimeout(() => {
+          isSyncingRef.current = false
+        }, 100)
+      } catch (error) {
+        // Silently fail
+        isSyncingRef.current = false
+      }
+    }, 500)
+  }, [])
+
+  // Wrapped setters that sync to API
+  const setKeywordFilterAndSync = useCallback((value: string) => {
+    setKeywordFilter(value)
+    syncFilterStateToAPI({ keywordFilter: value })
+  }, [syncFilterStateToAPI])
+
+  const setAppliedFilterAndSync = useCallback((value: AppliedFilterType) => {
+    setAppliedFilter(value)
+    syncFilterStateToAPI({ appliedFilter: value })
+  }, [syncFilterStateToAPI])
+
+  const setStartDateAndSync = useCallback((value: Date | null) => {
+    setStartDate(value)
+    syncFilterStateToAPI({ startDate: value ? value.toISOString().split('T')[0] : null })
+  }, [syncFilterStateToAPI])
+
+  const setEndDateAndSync = useCallback((value: Date | null) => {
+    setEndDate(value)
+    syncFilterStateToAPI({ endDate: value ? value.toISOString().split('T')[0] : null })
+  }, [syncFilterStateToAPI])
+
+  const setIdFilterAndSync = useCallback((value: string) => {
+    setIdFilter(value)
+    syncFilterStateToAPI({ idFilter: value })
+  }, [syncFilterStateToAPI])
+
   // Apply filters
   const filteredPosts = posts.filter(post => {
     // Keyword filter
@@ -185,9 +289,16 @@ function App() {
     <div className="bg-slate-100 min-h-screen font-sans">
       <div className="container mx-auto p-4 sm:p-6 lg:p-8">
         <header className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-slate-800">
-            LinkedIn Posts Viewer
-          </h1>
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <img 
+              src="/saitama-job-hunting.png" 
+              alt="LinkedIn Logo" 
+              className="w-8 h-8 object-contain"
+            />
+            <h1 className="text-4xl font-bold text-slate-800">
+              LinkedIn Posts Viewer
+            </h1>
+          </div>
           <p className="text-slate-500 mt-2">
             Browse and manage your saved LinkedIn posts
           </p>
@@ -200,23 +311,24 @@ function App() {
               <div className="flex items-center space-x-2">
                 <button
                   className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                    activeTab === 'screenshots'
+                    activeTab === 'posts'
                       ? 'bg-blue-500 text-white'
                       : 'text-slate-600 hover:bg-slate-100'
                   }`}
-                  onClick={() => setActiveTab('screenshots')}
+                  onClick={() => setActiveTab('posts')}
                 >
-                  📷 Screenshots
+                  📝 Posts
                 </button>
                 <button
-                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                    activeTab === 'table'
+                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors flex items-center gap-2 ${
+                    activeTab === 'db'
                       ? 'bg-blue-500 text-white'
                       : 'text-slate-600 hover:bg-slate-100'
                   }`}
-                  onClick={() => setActiveTab('table')}
+                  onClick={() => setActiveTab('db')}
                 >
-                  📋 Table View
+                  <Database size={16} />
+                  Database
                 </button>
               </div>
 
@@ -231,16 +343,16 @@ function App() {
             {/* Filters */}
             <FilterView
               keywordFilter={keywordFilter}
-              setKeywordFilter={setKeywordFilter}
+              setKeywordFilter={setKeywordFilterAndSync}
               appliedFilter={appliedFilter}
-              setAppliedFilter={setAppliedFilter}
+              setAppliedFilter={setAppliedFilterAndSync}
               uniqueKeywords={uniqueKeywords}
               startDate={startDate}
-              setStartDate={setStartDate}
+              setStartDate={setStartDateAndSync}
               endDate={endDate}
-              setEndDate={setEndDate}
+              setEndDate={setEndDateAndSync}
               idFilter={idFilter}
-              setIdFilter={setIdFilter}
+              setIdFilter={setIdFilterAndSync}
             />
 
             {/* Global error message */}
@@ -280,7 +392,7 @@ function App() {
             ) : (
               <>
                 {/* Tab content */}
-                {activeTab === 'screenshots' && (
+                {activeTab === 'posts' && (
                   <div className="p-4 sm:p-6">
                     <div className="grid grid-cols-1 gap-4 max-w-2xl mx-auto">
                       {filteredPosts.map(post => (
@@ -302,7 +414,7 @@ function App() {
                     </div>
                   </div>
                 )}
-                {activeTab === 'table' && (
+                {activeTab === 'db' && (
                   <TableView
                     posts={filteredPosts}
                     onPostUpdate={onPostUpdate}

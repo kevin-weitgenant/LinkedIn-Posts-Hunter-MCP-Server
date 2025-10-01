@@ -9,6 +9,12 @@ import {
   updateAppliedStatus 
 } from '../../db/operations.js';
 import { getScreenshotsPath } from '../../utils/paths.js';
+import { 
+  getFilterState, 
+  updateFilterState, 
+  resetFilterState,
+  type FilterState 
+} from '../../utils/filter-state.js';
 import type { DbPost } from '../../db/operations.js';
 
 /**
@@ -158,6 +164,51 @@ export function handleGetScreenshot(req: Request, res: Response): void {
     res.sendFile(filePath);
   } catch (error) {
     res.status(500).send('Failed to load screenshot');
+  }
+}
+
+/**
+ * GET /api/filter-state - Get current filter state
+ */
+export function handleGetFilterState(req: Request, res: Response): void {
+  try {
+    const state = getFilterState();
+    res.json(state);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to load filter state' });
+  }
+}
+
+/**
+ * PUT /api/filter-state - Update filter state (partial or full)
+ */
+export function handleUpdateFilterState(req: Request, res: Response): void {
+  try {
+    const updates: Partial<FilterState> = req.body;
+    
+    // Validate that at least one field is being updated
+    if (Object.keys(updates).length === 0) {
+      res.status(400).json({ error: 'No updates provided' });
+      return;
+    }
+    
+    const newState = updateFilterState(updates);
+    res.json(newState);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to update filter state';
+    res.status(400).json({ error: message });
+  }
+}
+
+/**
+ * DELETE /api/filter-state - Reset filter state to defaults
+ */
+export function handleResetFilterState(req: Request, res: Response): void {
+  try {
+    const defaultState = resetFilterState();
+    res.json(defaultState);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to reset filter state' });
   }
 }
 

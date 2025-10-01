@@ -8,6 +8,7 @@ import {
 import { handleLinkedInAuth } from './tools/authenticate.js';
 import { handleLinkedInSearchPosts } from './tools/search-posts/mcp-handler.js';
 import { handleLinkedInManagePosts } from './tools/posts-manager.js';
+import { handleLinkedInSetFilters } from './tools/filter-manager.js';
 import { startViteViewer, stopViteViewer } from './tools/start-server.js';
 
 // Initialize MCP server
@@ -140,6 +141,40 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           properties: {},
           additionalProperties: false
         },
+      },
+      {
+        name: "linkedin_set_filters",
+        description: "Control the LinkedIn post viewer filters from MCP. Updates filter state that React app polls and displays. Both MCP and manual UI changes sync to shared state file.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            keyword: {
+              type: "string",
+              description: "Filter by specific keyword (empty string for 'All Keywords')"
+            },
+            applied_status: {
+              type: "string",
+              enum: ["all", "applied", "not-applied"],
+              description: "Filter by application status: 'all' (default), 'applied', or 'not-applied'"
+            },
+            start_date: {
+              type: "string",
+              description: "Filter posts from this date onwards (ISO format: YYYY-MM-DD, e.g., '2024-01-15')"
+            },
+            end_date: {
+              type: "string",
+              description: "Filter posts up to this date (ISO format: YYYY-MM-DD, e.g., '2024-12-31')"
+            },
+            ids: {
+              type: "string",
+              description: "Filter by specific post IDs, comma-separated (e.g., '1,5,10')"
+            },
+            reset: {
+              type: "boolean",
+              description: "If true, reset all filters to default state (clears all filters)"
+            }
+          }
+        },
       }
     ],
   };
@@ -177,6 +212,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             text: stopResult.message
           }]
         };
+        
+      case "linkedin_set_filters":
+        return await handleLinkedInSetFilters(params as any);
         
       default:
         throw new Error(`Unknown tool: ${name}`);
