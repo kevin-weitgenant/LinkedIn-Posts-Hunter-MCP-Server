@@ -1,10 +1,11 @@
-import liveServer from 'live-server';
+import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 import http from 'http';
 import open from 'open';
-import { createApiMiddleware } from './server-api/api-router.js';
+import cors from 'cors';
+import { createApiRouter } from './server-api/api-router.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,14 +19,14 @@ export interface ViteViewerResult {
 
 // Module-level state tracking for singleton pattern
 let activeViteServer: {
-  server: any;
+  server: http.Server;
   port: number;
   url: string;
 } | null = null;
 
 /**
- * Start the Vite static viewer using live-server
- * Serves pre-built static files from dist/ with API middleware
+ * Start the Vite static viewer using Express
+ * Serves pre-built static files from dist/ with API routes
  * Reuses existing server if already running
  */
 export async function startViteViewer(): Promise<ViteViewerResult> {
@@ -53,52 +54,56 @@ export async function startViteViewer(): Promise<ViteViewerResult> {
     throw new Error(`Dist directory not found: ${distDir}. Did you run 'npm run build'?`);
   }
   
-  // Build live-server config
-  const serverConfig = {
-    port: PORT,
-    root: distDir,  // Serve pre-built static files
-    open: true,     // Open browser automatically
-    file: 'index.html',
-    watch: [],      // Don't watch files - React polling handles updates
-    logLevel: 0 as 0 | 1 | 2,    // Silent mode
-    middleware: [createApiMiddleware()]  // API endpoints for database access
-  };
+  // Create Express app
+  const app = express();
   
-  // Wrap in promise to wait for server to start and get actual port
+  // Middleware
+  app.use(cors());
+  app.use(express.json());
+  
+  // API routes
+  app.use('/api', createApiRouter());
+  
+  // Serve static files from dist directory
+  app.use(express.static(distDir));
+  
+  // SPA fallback - serve index.html for all other routes
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(distDir, 'index.html'));
+  });
+  
+  // Create HTTP server
   return new Promise((resolve, reject) => {
-    try {
-      // live-server.start() returns the server but types say void - cast to correct type
-      const server = liveServer.start(serverConfig) as unknown as http.Server;
+    const server = http.createServer(app);
+    
+    // Handle server errors
+    server.on('error', (error: Error) => {
+      reject(new Error(`Failed to start Vite viewer: ${error.message}`));
+    });
+    
+    // Start listening
+    server.listen(PORT, () => {
+      const url = `http://localhost:${PORT}`;
       
-      // Wait for server to finish binding
-      server.addListener('listening', () => {
-        const address = server.address() as { port: number; family: string; address: string };
-        const actualPort = address.port;
-        const url = `http://localhost:${actualPort}`;
-        
-        // Store active server info for singleton pattern
-        activeViteServer = {
-          server,
-          port: actualPort,
-          url
-        };
-        
-        resolve({
-          port: actualPort,
-          status: 'started',
-          url: url,
-          message: `Vite viewer started at ${url}. Browser opened automatically.\n\nReact app auto-polls for updates every 3 seconds - no page reloads needed!`
-        });
+      // Store active server info for singleton pattern
+      activeViteServer = {
+        server,
+        port: PORT,
+        url
+      };
+      
+      // Open browser
+      open(url).catch(() => {
+        // Ignore browser open errors
       });
       
-      // Handle server errors
-      server.addListener('error', (error: Error) => {
-        reject(new Error(`Failed to start Vite viewer: ${error.message}`));
+      resolve({
+        port: PORT,
+        status: 'started',
+        url: url,
+        message: `Vite viewer started at ${url}. Browser opened automatically.\n\nReact app auto-polls for updates every 3 seconds - no page reloads needed!`
       });
-      
-    } catch (error) {
-      reject(new Error(`Failed to start Vite viewer: ${error instanceof Error ? error.message : 'Unknown error'}`));
-    }
+    });
   });
 }
 
@@ -115,8 +120,8 @@ export function stopViteViewer(): { success: boolean; message: string } {
   }
   
   try {
-    liveServer.shutdown();
     const url = activeViteServer.url;
+    activeViteServer.server.close();
     activeViteServer = null;
     
     return {

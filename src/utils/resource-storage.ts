@@ -1,5 +1,5 @@
 import { ensureResourceDirectories } from './paths.js';
-import type { PostResult } from '../tools/search-posts.js';
+import type { PostResult } from '../tools/search-posts/utils/types.js';
 import { insertPost, countPosts } from '../db/operations.js';
 
 /**

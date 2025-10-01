@@ -48,6 +48,48 @@ export function LinkedInPostCard({
     return numValue.toString()
   }
 
+  const renderDescription = (text: string) => {
+    if (!text) return null
+
+    const lines = text.split('\n')
+
+    const elements: React.ReactNode[] = []
+    let currentHashtags: string[] = []
+
+    const flushHashtags = (key: string | number) => {
+      if (currentHashtags.length > 0) {
+        elements.push(
+          <div key={`hashtags-${key}`} className="flex flex-wrap gap-x-2 gap-y-1">
+            {currentHashtags.map((tag, tagIndex) => (
+              <span key={tagIndex} className="font-medium text-blue-600">
+                {tag}
+              </span>
+            ))}
+          </div>,
+        )
+        currentHashtags = []
+      }
+    }
+
+    lines.forEach((line, index) => {
+      const trimmed = line.trim()
+      if (trimmed.startsWith('#')) {
+        currentHashtags.push(trimmed)
+      } else if (trimmed.toLowerCase() !== 'hashtag') {
+        flushHashtags(index)
+        elements.push(
+          <p key={`text-${index}`} className="whitespace-pre-wrap">
+            {line}
+          </p>,
+        )
+      }
+    })
+
+    flushHashtags('end')
+
+    return elements
+  }
+
   // Map database fields to display values
   const authorName = post.author_name || 'Unknown Author'
   const authorHeadline = 'LinkedIn User' // We don't have this field in DB yet
@@ -137,7 +179,7 @@ export function LinkedInPostCard({
       {/* Post Content */}
       <div className="px-4 pb-3">
         <div className="text-slate-800 whitespace-pre-wrap break-words text-sm leading-relaxed">
-          {post.description}
+          {renderDescription(post.description)}
         </div>
       </div>
 

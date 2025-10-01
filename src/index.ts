@@ -6,7 +6,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 
 import { handleLinkedInAuth } from './tools/authenticate.js';
-import { handleLinkedInSearchPosts } from './tools/search-posts.js';
+import { handleLinkedInSearchPosts } from './tools/search-posts/mcp-handler.js';
 import { handleLinkedInManagePosts } from './tools/posts-manager.js';
 import { startViteViewer, stopViteViewer } from './tools/start-server.js';
 
