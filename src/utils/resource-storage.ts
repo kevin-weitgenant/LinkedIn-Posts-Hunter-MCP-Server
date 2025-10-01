@@ -35,7 +35,12 @@ export const saveSearchResourceToDb = async (
       post.description,
       searchDate,
       post.screenshotPath || '',
-      false // applied status - default to false for new posts
+      false, // applied status - default to false for new posts
+      post.profileImage || '',
+      post.authorName || '',
+      post.postDate || '',
+      post.likeCount || '',
+      post.commentCount || ''
     );
     
     if (id !== null) {

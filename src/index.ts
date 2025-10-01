@@ -8,8 +8,7 @@ import {
 import { handleLinkedInAuth } from './tools/authenticate.js';
 import { handleLinkedInSearchPosts } from './tools/search-posts.js';
 import { handleLinkedInManagePosts } from './tools/posts-manager.js';
-import { startPostViewer } from './tools/start-posts-viewer/index.js';
-import { startViteViewer, stopViteViewer } from './tools/start-vite-viewer.js';
+import { startViteViewer, stopViteViewer } from './tools/start-server.js';
 
 // Initialize MCP server
 const server = new Server(
@@ -67,15 +66,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             }
           },
           required: ["keywords"]
-        },
-      },
-      {
-        name: "start_visualization_page",
-        description: "Start a live server visualization page, showing the collected scraped data.",
-        inputSchema: {
-          type: "object",
-          properties: {},
-          additionalProperties: false
         },
       },
       {
@@ -166,15 +156,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         
       case "linkedin_search_posts":
         return await handleLinkedInSearchPosts(params as any);
-        
-      case "start_visualization_page":
-        const result = await startPostViewer();
-        return {
-          content: [{
-            type: "text",
-            text: `Post Viewer started successfully!\n\n${result.message}\n\nThe browser should have opened automatically. If not, visit: ${result.url}`
-          }]
-        };
         
       case "linkedin_manage_posts":
         return await handleLinkedInManagePosts(params as any);

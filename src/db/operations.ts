@@ -8,6 +8,11 @@ export interface DbPost {
   search_date: string;
   screenshot_path: string;
   applied: number; // SQLite stores as INTEGER (0 or 1), convert to boolean in code
+  profile_image: string;
+  author_name: string;
+  post_date: string;
+  like_count: string;
+  comment_count: string;
 }
 
 /**
@@ -20,17 +25,34 @@ export function insertPost(
   description: string,
   searchDate: string,
   screenshotPath: string = '',
-  applied: boolean = false
+  applied: boolean = false,
+  profileImage: string = '',
+  authorName: string = '',
+  postDate: string = '',
+  likeCount: string = '',
+  commentCount: string = ''
 ): number | null {
   const db = getDatabase();
   
   try {
     const stmt = db.prepare(`
-      INSERT INTO posts (search_keywords, post_link, description, search_date, screenshot_path, applied)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO posts (search_keywords, post_link, description, search_date, screenshot_path, applied, profile_image, author_name, post_date, like_count, comment_count)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     
-    const result = stmt.run(keywords, link, description, searchDate, screenshotPath, applied ? 1 : 0);
+    const result = stmt.run(
+      keywords, 
+      link, 
+      description, 
+      searchDate, 
+      screenshotPath, 
+      applied ? 1 : 0,
+      profileImage,
+      authorName,
+      postDate,
+      likeCount,
+      commentCount
+    );
     return result.lastInsertRowid as number;
   } catch (error: any) {
     // SQLITE_CONSTRAINT_UNIQUE means duplicate post_link

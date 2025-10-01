@@ -35,9 +35,29 @@ const formatPost = (post: DbPost): string => {
   const date = new Date(post.search_date).toISOString().split('T')[0];
   const appliedStatus = post.applied === 1 ? '✓ Applied' : '○ Not Applied';
   
+  // Build author info line if available
+  let authorInfo = '';
+  if (post.author_name) {
+    authorInfo = `     Author: ${post.author_name}`;
+    if (post.post_date) {
+      authorInfo += ` • ${post.post_date}`;
+    }
+    authorInfo += '\n';
+  }
+  
+  // Build engagement info line if available
+  let engagementInfo = '';
+  if (post.like_count || post.comment_count) {
+    engagementInfo = '     Engagement: ';
+    const parts = [];
+    if (post.like_count) parts.push(`${post.like_count} likes`);
+    if (post.comment_count) parts.push(post.comment_count);
+    engagementInfo += parts.join(' • ') + '\n';
+  }
+  
   return `#${post.id} | Keywords: ${post.search_keywords}
      Link: ${post.post_link}
-     Desc: ${desc}
+${authorInfo}${engagementInfo}     Desc: ${desc}
      Date: ${date}
      Status: ${appliedStatus}`;
 };

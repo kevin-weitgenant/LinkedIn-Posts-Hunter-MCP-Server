@@ -15,6 +15,11 @@ export interface PostResult {
   link: string;
   description: string;
   screenshotPath?: string;
+  profileImage?: string;
+  authorName?: string;
+  postDate?: string;
+  likeCount?: string;
+  commentCount?: string;
 }
 
 /**
@@ -41,7 +46,7 @@ const performSearch = async (
     await page.goto(searchUrl, { waitUntil: 'domcontentloaded' });
     
     // Wait for search results to load
-    await page.waitForSelector('[data-view-tracking-scope]', { timeout: 20000 }).catch(() => {});
+    await page.waitForSelector('[data-view-tracking-scope]', { timeout: 0 }).catch(() => {});
 
     // Scroll to load more results
     const seenUrns = new Set<string>();
@@ -84,20 +89,97 @@ const performSearch = async (
         let postPage: Page | null = null;
         
         try {
+          console.error(`[${item.index + 1}/${tasks.length}] Processing: ${item.urn}`);
           postPage = await context.newPage();
-          await postPage.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-          await postPage
-            .waitForSelector('div.update-components-text.relative.update-components-update-v2__commentary', { timeout: 12000 })
-            .catch(() => {});
+          await postPage.goto(url, { waitUntil: 'domcontentloaded', timeout: 0 });
           
-          const description: string = await postPage.$$eval(
-            'div.update-components-text.relative.update-components-update-v2__commentary',
-            (divs) =>
-              divs
-                .map((d) => (d.textContent || '').replace(/\s+/g, ' ').trim())
-                .filter((t) => t.length > 0)
-                .join('\n\n')
+          // Wait for actual post description content to appear (not just the DOM element)
+          await postPage.waitForFunction(
+            () => {
+              const el = document.querySelector('div.update-components-text.relative.update-components-update-v2__commentary');
+              return el && el.textContent && el.textContent.trim().length > 10;
+            },
+            { timeout: 0 }
           );
+          
+          let description: string = '';
+          try {
+            description = await postPage.$$eval(
+              'div.update-components-text.relative.update-components-update-v2__commentary',
+              (divs) =>
+                divs
+                  .map((d) => (d.textContent || '').replace(/\s+/g, ' ').trim())
+                  .filter((t) => t.length > 0)
+                  .join('\n\n')
+            );
+            
+            if (!description) {
+              console.error(`⚠️  [${item.index + 1}] No description found for ${item.urn}, saving with placeholder`);
+              description = '[No description content found]';
+            }
+          } catch (descError) {
+            console.error(`❌ [${item.index + 1}] Failed to extract description for ${item.urn}:`, descError instanceof Error ? descError.message : descError);
+            description = '[Description extraction failed]';
+          }
+          
+          // Extract additional metadata using XPath selectors
+          let profileImage: string | undefined;
+          let authorName: string | undefined;
+          let postDate: string | undefined;
+          let likeCount: string | undefined;
+          let commentCount: string | undefined;
+          
+          try {
+            // Profile image
+            const profileImageLocator = postPage.locator('xpath=//div[contains(@class, "ivm-view-attr__img-wrapper")]//img[contains(@class, "EntityPhoto-circle")]');
+            if (await profileImageLocator.count() > 0) {
+              profileImage = await profileImageLocator.first().getAttribute('src') || undefined;
+            }
+          } catch (_) {}
+          
+          try {
+            // Author name
+            const nameLocator = postPage.locator('xpath=//span[contains(@class, "update-components-actor__title")]//span[contains(@class, "hoverable-link-text")]');
+            if (await nameLocator.count() > 0) {
+              const rawName = await nameLocator.first().textContent() || '';
+              const trimmed = rawName.trim();
+              const halfLength = trimmed.length / 2;
+              const isDuplicate = trimmed.length % 2 === 0 && 
+                                  trimmed.substring(0, halfLength) === trimmed.substring(halfLength);
+              authorName = isDuplicate ? trimmed.substring(0, halfLength).trim() : trimmed;
+            }
+          } catch (_) {}
+          
+          try {
+            // Post date
+            const dateLocator = postPage.locator('xpath=//span[contains(@class, "update-components-actor__sub-description")]//span[@aria-hidden="true"]');
+            if (await dateLocator.count() > 0) {
+              const rawDate = await dateLocator.first().textContent() || '';
+              postDate = rawDate
+                .replace(/•/g, '')
+                .replace(/\bEdited\b/gi, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+            }
+          } catch (_) {}
+          
+          try {
+            // Like counter
+            const likeLocator = postPage.locator('xpath=//span[contains(@class, "social-details-social-counts__reactions-count") and @aria-hidden="true"]');
+            if (await likeLocator.count() > 0) {
+              const rawLikes = await likeLocator.first().textContent() || '';
+              likeCount = rawLikes.replace(/\s+/g, ' ').trim();
+            }
+          } catch (_) {}
+          
+          try {
+            // Comments counter
+            const commentLocator = postPage.locator('xpath=//span[@aria-hidden="true" and contains(normalize-space(.), "comments")]');
+            if (await commentLocator.count() > 0) {
+              const rawComments = await commentLocator.first().textContent() || '';
+              commentCount = rawComments.replace(/\s+/g, ' ').trim();
+            }
+          } catch (_) {}
           
           // Capture screenshot of the post content
           let screenshotPath: string | undefined;
@@ -117,12 +199,26 @@ const performSearch = async (
             }
           } catch (screenshotError) {
             // Log but don't fail - screenshot is optional
-            console.warn(`Failed to capture screenshot for ${item.urn}:`, screenshotError);
+            console.error(`Failed to capture screenshot for ${item.urn}:`, screenshotError);
           }
           
-          results[item.index] = { link: url, description, screenshotPath };
-        } catch (_) {
-          results[item.index] = { link: url, description: '' };
+          results[item.index] = { 
+            link: url, 
+            description, 
+            screenshotPath,
+            profileImage,
+            authorName,
+            postDate,
+            likeCount,
+            commentCount
+          };
+          console.error(`✅ [${item.index + 1}] Successfully processed: ${item.urn}`);
+        } catch (error) {
+          console.error(`❌ [${item.index + 1}] Failed to process ${item.urn}:`, error instanceof Error ? error.message : error);
+          results[item.index] = { 
+            link: url, 
+            description: '[Post processing failed - page may not have loaded]' 
+          };
         } finally {
           if (postPage) {
             try { await postPage.close(); } catch (_) {}
@@ -133,8 +229,12 @@ const performSearch = async (
 
     await Promise.allSettled(Array.from({ length: concurrency }, () => worker()));
     
-    // Filter out empty results
-    return results.filter(r => r.description.length > 0);
+    // Return all results (including those with placeholder descriptions)
+    const successCount = results.filter(r => !r.description.startsWith('[')).length;
+    const failedCount = results.length - successCount;
+    console.error(`\n📊 Processing complete: ${successCount} successful, ${failedCount} failed out of ${results.length} total posts`);
+    
+    return results;
     
   } finally {
     try { await page.close(); } catch (_) {}

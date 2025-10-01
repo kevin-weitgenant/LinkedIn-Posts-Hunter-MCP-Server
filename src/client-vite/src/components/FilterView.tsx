@@ -1,0 +1,100 @@
+import React from 'react'
+import DatePicker from 'react-datepicker'
+import { AppliedFilterType } from '../App'
+
+interface FilterViewProps {
+  keywordFilter: string
+  setKeywordFilter: (value: string) => void
+  appliedFilter: AppliedFilterType
+  setAppliedFilter: (value: AppliedFilterType) => void
+  uniqueKeywords: string[]
+  startDate: Date | null
+  setStartDate: (value: Date | null) => void
+  endDate: Date | null
+  setEndDate: (value: Date | null) => void
+}
+
+export const FilterView: React.FC<FilterViewProps> = ({
+  keywordFilter,
+  setKeywordFilter,
+  appliedFilter,
+  setAppliedFilter,
+  uniqueKeywords,
+  startDate,
+  setStartDate,
+  endDate,
+  setEndDate,
+}) => {
+  const handleKeywordChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setKeywordFilter(e.target.value)
+  }
+  return (
+    <div className="bg-slate-50 p-4 border-b border-slate-200">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Keyword Filter */}
+        <div className="filter-item">
+          <label htmlFor="keyword-filter" className="block text-sm font-medium text-slate-700 mb-1">Keyword:</label>
+          <select 
+            id="keyword-filter" 
+            value={keywordFilter} 
+            onChange={handleKeywordChange}
+            className="w-full bg-white border border-slate-300 rounded-md shadow-sm py-2 px-3 text-sm text-slate-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="">All Keywords</option>
+            {uniqueKeywords.map(kw => (
+              <option key={kw} value={kw}>
+                {kw}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Applied Status Filter */}
+        <div className="filter-item">
+          <label htmlFor="applied-filter" className="block text-sm font-medium text-slate-700 mb-1">Status:</label>
+          <select
+            id="applied-filter"
+            value={appliedFilter}
+            onChange={e => setAppliedFilter(e.target.value as AppliedFilterType)}
+            className="w-full bg-white border border-slate-300 rounded-md shadow-sm py-2 px-3 text-sm text-slate-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="all">All</option>
+            <option value="applied">Applied</option>
+            <option value="not-applied">Not Applied</option>
+          </select>
+        </div>
+
+        {/* Date Range Filter */}
+        <div className="filter-item">
+          <label htmlFor="start-date" className="block text-sm font-medium text-slate-700 mb-1">From:</label>
+          <DatePicker
+            id="start-date"
+            selected={startDate}
+            onChange={(date: Date | null) => setStartDate(date)}
+            selectsStart
+            startDate={startDate}
+            endDate={endDate}
+            isClearable
+            placeholderText="Select start date"
+            className="w-full bg-white border border-slate-300 rounded-md shadow-sm py-2 px-3 text-sm text-slate-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+        <div className="filter-item">
+          <label htmlFor="end-date" className="block text-sm font-medium text-slate-700 mb-1">To:</label>
+          <DatePicker
+            id="end-date"
+            selected={endDate}
+            onChange={(date: Date | null) => setEndDate(date)}
+            selectsEnd
+            startDate={startDate}
+            endDate={endDate}
+            minDate={startDate ?? undefined}
+            isClearable
+            placeholderText="Select end date"
+            className="w-full bg-white border border-slate-300 rounded-md shadow-sm py-2 px-3 text-sm text-slate-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
