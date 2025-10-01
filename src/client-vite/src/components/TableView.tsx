@@ -164,6 +164,15 @@ export function TableView({ posts, onPostUpdate, onPostDelete }: TableViewProps)
       ),
       size: 150
     }),
+    columnHelper.accessor('author_occupation', {
+      header: 'Occupation',
+      cell: info => (
+        <span className="text-slate-600">
+          {info.getValue() || '-'}
+        </span>
+      ),
+      size: 200
+    }),
     columnHelper.accessor('search_keywords', {
       header: 'Keywords',
       cell: info =>
@@ -241,7 +250,7 @@ export function TableView({ posts, onPostUpdate, onPostDelete }: TableViewProps)
     columnHelper.accessor('applied', {
       header: 'Applied',
       cell: info => (
-        <div className="text-center">
+        <div className="flex justify-center">
           {editingId === info.row.original.id ? (
             <input
               type="checkbox"
@@ -252,21 +261,28 @@ export function TableView({ posts, onPostUpdate, onPostDelete }: TableViewProps)
           ) : (
             <button
               onClick={() => handleToggleApplied(info.row.original)}
-              className="text-2xl disabled:opacity-50"
+              className={`p-1.5 rounded-full transition-colors disabled:opacity-50 ${
+                info.getValue() === 1
+                  ? 'text-green-600 hover:bg-green-50'
+                  : 'text-slate-400 hover:bg-slate-100'
+              }`}
               disabled={loading}
-              title="Click to toggle"
+              title={info.getValue() === 1 ? 'Mark as Not Applied' : 'Mark as Applied'}
             >
-              {info.getValue() === 1 ? '✅' : '⭕'}
+              {info.getValue() === 1 ? (
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                </svg>
+              )}
             </button>
           )}
         </div>
       ),
       size: 80
-    }),
-    columnHelper.accessor('screenshot_path', {
-      header: 'Screenshot',
-      cell: info => <div className="text-center text-xl">{info.getValue() ? '📷' : '-'}</div>,
-      size: 100
     }),
     columnHelper.display({
       id: 'actions',

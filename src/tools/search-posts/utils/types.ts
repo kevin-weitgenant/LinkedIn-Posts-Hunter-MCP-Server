@@ -10,16 +10,15 @@ export interface SearchPostsParams {
 export interface PostResult {
   link: string;
   description: string;
-  screenshotPath?: string;
   profileImage?: string;
   authorName?: string;
+  authorOccupation?: string;
   postDate?: string;
   likeCount?: string;
   commentCount?: string;
 }
 
 export interface SearchOptions {
-  enableScreenshots?: boolean;
   concurrency?: number;
 }
 

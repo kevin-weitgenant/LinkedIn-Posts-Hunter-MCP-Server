@@ -106,5 +106,23 @@ export const extractCommentCount = async (page: Page): Promise<string | undefine
   return undefined;
 };
 
+/**
+ * Extract author occupation/headline
+ */
+export const extractAuthorOccupation = async (page: Page): Promise<string | undefined> => {
+  try {
+    const occupationLocator = page.locator(
+      'xpath=//span[contains(@class, "update-components-actor__description")]//span[@aria-hidden="true"]'
+    );
+    if (await occupationLocator.count() > 0) {
+      const rawOccupation = await occupationLocator.first().textContent() || '';
+      return rawOccupation.replace(/\s+/g, ' ').trim();
+    }
+  } catch (error) {
+    // Silently fail for optional metadata
+  }
+  return undefined;
+};
+
 
 

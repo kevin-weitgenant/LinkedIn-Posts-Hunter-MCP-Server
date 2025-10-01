@@ -37,10 +37,10 @@ function initializeSchema(): void {
       post_link TEXT UNIQUE NOT NULL,
       description TEXT NOT NULL,
       search_date TEXT NOT NULL,
-      screenshot_path TEXT DEFAULT '',
       applied INTEGER DEFAULT 0,
       profile_image TEXT DEFAULT '',
       author_name TEXT DEFAULT '',
+      author_occupation TEXT DEFAULT '',
       post_date TEXT DEFAULT '',
       like_count TEXT DEFAULT '',
       comment_count TEXT DEFAULT ''

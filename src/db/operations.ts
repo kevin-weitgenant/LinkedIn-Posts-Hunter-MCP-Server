@@ -6,10 +6,10 @@ export interface DbPost {
   post_link: string;
   description: string;
   search_date: string;
-  screenshot_path: string;
   applied: number; // SQLite stores as INTEGER (0 or 1), convert to boolean in code
   profile_image: string;
   author_name: string;
+  author_occupation: string;
   post_date: string;
   like_count: string;
   comment_count: string;
@@ -24,10 +24,10 @@ export function insertPost(
   link: string,
   description: string,
   searchDate: string,
-  screenshotPath: string = '',
   applied: boolean = false,
   profileImage: string = '',
   authorName: string = '',
+  authorOccupation: string = '',
   postDate: string = '',
   likeCount: string = '',
   commentCount: string = ''
@@ -36,7 +36,7 @@ export function insertPost(
   
   try {
     const stmt = db.prepare(`
-      INSERT INTO posts (search_keywords, post_link, description, search_date, screenshot_path, applied, profile_image, author_name, post_date, like_count, comment_count)
+      INSERT INTO posts (search_keywords, post_link, description, search_date, applied, profile_image, author_name, author_occupation, post_date, like_count, comment_count)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     
@@ -45,10 +45,10 @@ export function insertPost(
       link, 
       description, 
       searchDate, 
-      screenshotPath, 
       applied ? 1 : 0,
       profileImage,
       authorName,
+      authorOccupation,
       postDate,
       likeCount,
       commentCount
@@ -111,14 +111,12 @@ export function updatePost(post: DbPost): boolean {
     UPDATE posts 
     SET search_keywords = ?,
         description = ?,
-        screenshot_path = ?,
         applied = ?
     WHERE id = ?
   `);
   const result = stmt.run(
     post.search_keywords,
     post.description,
-    post.screenshot_path,
     post.applied,
     post.id
   );

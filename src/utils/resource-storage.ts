@@ -34,10 +34,10 @@ export const saveSearchResourceToDb = async (
       post.link,
       post.description,
       searchDate,
-      post.screenshotPath || '',
       false, // applied status - default to false for new posts
       post.profileImage || '',
       post.authorName || '',
+      post.authorOccupation || '',
       post.postDate || '',
       post.likeCount || '',
       post.commentCount || ''

@@ -48,8 +48,7 @@ const processPost = async (
   context: BrowserContext,
   urn: string,
   index: number,
-  total: number,
-  enableScreenshots: boolean
+  total: number
 ): Promise<PostResult> => {
   const url = buildPostUrl(urn);
   let postPage: Page | null = null;
@@ -59,7 +58,7 @@ const processPost = async (
     postPage = await context.newPage();
     await postPage.goto(url, { waitUntil: 'domcontentloaded', timeout: 0 });
     
-    const result = await extractPostContent(postPage, url, urn, enableScreenshots);
+    const result = await extractPostContent(postPage, url, urn);
     
     if (result.description.startsWith('[')) {
       console.error(`⚠️  [${index + 1}] Warning: ${result.description} for ${urn}`);
@@ -87,7 +86,6 @@ const processPost = async (
 const processPostsConcurrently = async (
   context: BrowserContext,
   urns: string[],
-  enableScreenshots: boolean,
   concurrency: number
 ): Promise<PostResult[]> => {
   const tasks = urns.map((urn, index) => ({ urn, index }));
@@ -103,8 +101,7 @@ const processPostsConcurrently = async (
         context,
         item.urn,
         item.index,
-        tasks.length,
-        enableScreenshots
+        tasks.length
       );
     }
   };
@@ -129,7 +126,7 @@ const performSearch = async (
   options: SearchOptions
 ): Promise<PostResult[]> => {
   const page = await context.newPage();
-  const { enableScreenshots = true, concurrency = 8 } = options;
+  const { concurrency = 8 } = options;
   
   try {
     // Navigate to search results with filters applied
@@ -158,7 +155,6 @@ const performSearch = async (
     const results = await processPostsConcurrently(
       context,
       uniqueUrns,
-      enableScreenshots,
       actualConcurrency
     );
     

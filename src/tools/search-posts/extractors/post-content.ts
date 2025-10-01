@@ -3,8 +3,6 @@
  */
 
 import { Page } from 'playwright';
-import path from 'path';
-import { getScreenshotsPath } from '../../../utils/paths.js';
 import type { PostResult } from '../utils/types.js';
 
 /**
@@ -37,42 +35,18 @@ export const extractDescription = async (page: Page): Promise<string> => {
 };
 
 /**
- * Capture screenshot of post content
- */
-export const captureScreenshot = async (page: Page, urn: string): Promise<string | undefined> => {
-  try {
-    const screenshotsDir = getScreenshotsPath();
-    const timestamp = Date.now();
-    const sanitizedUrn = urn.replace(/[^a-zA-Z0-9-_]/g, '_');
-    const filename = `post_${sanitizedUrn}_${timestamp}.png`;
-    const fullPath = path.join(screenshotsDir, filename);
-    
-    // Try to screenshot the specific post element
-    const postElement = await page.$('div.update-components-text.relative.update-components-update-v2__commentary');
-    if (postElement) {
-      await postElement.screenshot({ path: fullPath, type: 'png' });
-      return `screenshots/${filename}`;
-    }
-  } catch (error) {
-    // Log but don't fail - screenshot is optional
-    console.error('Failed to capture screenshot:', error instanceof Error ? error.message : error);
-  }
-  return undefined;
-};
-
-/**
  * Extract all post content from a LinkedIn post page
  */
 export const extractPostContent = async (
   page: Page,
   url: string,
-  urn: string,
-  enableScreenshots: boolean = true
+  urn: string
 ): Promise<PostResult> => {
   // Import metadata extractors dynamically to avoid circular deps
   const { 
     extractProfileImage, 
     extractAuthorName, 
+    extractAuthorOccupation,
     extractPostDate, 
     extractLikeCount, 
     extractCommentCount 
@@ -92,26 +66,26 @@ export const extractPostContent = async (
     description,
     profileImage,
     authorName,
+    authorOccupation,
     postDate,
     likeCount,
-    commentCount,
-    screenshotPath
+    commentCount
   ] = await Promise.all([
     extractDescription(page),
     extractProfileImage(page),
     extractAuthorName(page),
+    extractAuthorOccupation(page),
     extractPostDate(page),
     extractLikeCount(page),
-    extractCommentCount(page),
-    enableScreenshots ? captureScreenshot(page, urn) : Promise.resolve(undefined)
+    extractCommentCount(page)
   ]);
   
   return {
     link: url,
     description,
-    screenshotPath,
     profileImage,
     authorName,
+    authorOccupation,
     postDate,
     likeCount,
     commentCount

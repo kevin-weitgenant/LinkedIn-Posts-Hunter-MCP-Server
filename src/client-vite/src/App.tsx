@@ -17,6 +17,7 @@ function App() {
     useState<AppliedFilterType>('all')
   const [startDate, setStartDate] = useState<Date | null>(null)
   const [endDate, setEndDate] = useState<Date | null>(null)
+  const [idFilter, setIdFilter] = useState('')
   const [loadingStates, setLoadingStates] = useState<Record<number, boolean>>({})
   const [cardErrorMessage, setCardErrorMessage] = useState<string | null>(null)
 
@@ -162,7 +163,22 @@ function App() {
     const dateMatch =
       (!start || postDate >= start) && (!end || postDate <= end)
 
-    return keywordMatch && appliedMatch && dateMatch
+    // ID filter
+    const idMatch = (() => {
+      if (!idFilter.trim()) {
+        return true
+      }
+      const ids = idFilter
+        .split(',')
+        .map(id => parseInt(id.trim()))
+        .filter(id => !isNaN(id))
+      if (ids.length === 0) {
+        return true // Or false, depending on desired behavior for empty/invalid input
+      }
+      return ids.includes(post.id)
+    })()
+
+    return keywordMatch && appliedMatch && dateMatch && idMatch
   })
 
   return (
@@ -223,6 +239,8 @@ function App() {
               setStartDate={setStartDate}
               endDate={endDate}
               setEndDate={setEndDate}
+              idFilter={idFilter}
+              setIdFilter={setIdFilter}
             />
 
             {/* Global error message */}

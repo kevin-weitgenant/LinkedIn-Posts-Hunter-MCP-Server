@@ -26,20 +26,99 @@ export function LinkedInPostCard({
       .slice(0, 2)
   }
 
-  const formatTimestamp = (timestamp: string) => {
-    if (!timestamp || timestamp.trim() === '') return 'Unknown time'
-    const date = new Date(timestamp)
+  /**
+   * Parse LinkedIn relative time string (e.g., "1w", "2d", "3mo") to milliseconds
+   */
+  const parseLinkedInRelativeTime = (relativeTime: string): number | null => {
+    if (!relativeTime || relativeTime.trim() === '') return null
+    
+    // Remove spaces and convert to lowercase
+    const cleaned = relativeTime.trim().toLowerCase().replace(/\s+/g, '')
+    
+    // Match pattern: number followed by unit (m, h, d, w, mo, yr)
+    const match = cleaned.match(/^(\d+)(m|h|d|w|mo|yr)$/)
+    if (!match) return null
+    
+    const value = parseInt(match[1])
+    const unit = match[2]
+    
+    const MS_PER_MINUTE = 60 * 1000
+    const MS_PER_HOUR = 60 * MS_PER_MINUTE
+    const MS_PER_DAY = 24 * MS_PER_HOUR
+    const MS_PER_WEEK = 7 * MS_PER_DAY
+    const MS_PER_MONTH = 30 * MS_PER_DAY // Approximate
+    const MS_PER_YEAR = 365 * MS_PER_DAY // Approximate
+    
+    switch (unit) {
+      case 'm': return value * MS_PER_MINUTE
+      case 'h': return value * MS_PER_HOUR
+      case 'd': return value * MS_PER_DAY
+      case 'w': return value * MS_PER_WEEK
+      case 'mo': return value * MS_PER_MONTH
+      case 'yr': return value * MS_PER_YEAR
+      default: return null
+    }
+  }
+
+  /**
+   * Calculate the actual post date from search_date and LinkedIn relative time
+   */
+  const calculateActualPostDate = (searchDate: string, linkedInRelativeTime: string): Date | null => {
+    try {
+      const searchDateTime = new Date(searchDate)
+      if (isNaN(searchDateTime.getTime())) return null
+      
+      const relativeMs = parseLinkedInRelativeTime(linkedInRelativeTime)
+      if (relativeMs === null) return null
+      
+      // Subtract the relative time from search date to get actual post date
+      return new Date(searchDateTime.getTime() - relativeMs)
+    } catch {
+      return null
+    }
+  }
+
+  /**
+   * Format timestamp for display - handles both absolute timestamps and calculated dates
+   */
+  const formatTimestamp = (postDate: string, searchDate: string): string => {
+    let actualPostDate: Date | null = null
+    
+    // Try to calculate actual post date from LinkedIn relative time
+    actualPostDate = calculateActualPostDate(searchDate, postDate)
+    
+    // Fallback: try parsing postDate as absolute date
+    if (!actualPostDate) {
+      const parsedDate = new Date(postDate)
+      if (!isNaN(parsedDate.getTime())) {
+        actualPostDate = parsedDate
+      }
+    }
+    
+    // Final fallback: use search date
+    if (!actualPostDate) {
+      const parsedSearchDate = new Date(searchDate)
+      if (!isNaN(parsedSearchDate.getTime())) {
+        actualPostDate = parsedSearchDate
+      } else {
+        return 'Unknown time'
+      }
+    }
+    
+    // Calculate time difference from NOW
     const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
+    const diffMs = now.getTime() - actualPostDate.getTime()
     const diffMins = Math.floor(diffMs / 60000)
     const diffHours = Math.floor(diffMins / 60)
     const diffDays = Math.floor(diffHours / 24)
+    const diffWeeks = Math.floor(diffDays / 7)
 
     if (diffMins < 1) return 'Just now'
     if (diffMins < 60) return `${diffMins}m`
     if (diffHours < 24) return `${diffHours}h`
     if (diffDays < 7) return `${diffDays}d`
-    return date.toLocaleDateString()
+    if (diffWeeks < 4) return `${diffWeeks}w`
+    return actualPostDate.toLocaleDateString()
   }
 
   const formatNumber = (num: string | number) => {
@@ -92,9 +171,8 @@ export function LinkedInPostCard({
 
   // Map database fields to display values
   const authorName = post.author_name || 'Unknown Author'
-  const authorHeadline = 'LinkedIn User' // We don't have this field in DB yet
+  const authorHeadline = post.author_occupation || 'LinkedIn User'
   const authorPhotoUrl = post.profile_image || undefined
-  const postTimestamp = post.post_date || post.search_date
   const likes = post.like_count ? parseInt(post.like_count) : undefined
   const comments = post.comment_count ? parseInt(post.comment_count) : undefined
 
@@ -130,7 +208,7 @@ export function LinkedInPostCard({
                 {authorHeadline}
               </div>
               <div className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
-                <span>{formatTimestamp(postTimestamp)}</span>
+                <span>{formatTimestamp(post.post_date || post.search_date, post.search_date)}</span>
                 <span>•</span>
                 <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 16 16">
                   <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4Zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10Z"/>
@@ -239,13 +317,6 @@ export function LinkedInPostCard({
           </div>
         </div>
       </div>
-
-      {/* Applied Badge */}
-      {post.applied && (
-        <div className="absolute top-2 left-2 bg-green-500 text-white text-xs font-semibold px-2 py-1 rounded-full shadow-sm">
-          ✓ Applied
-        </div>
-      )}
     </div>
   )
 }

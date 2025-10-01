@@ -12,7 +12,7 @@ console.log('📝 Note: This test uses the core function without database writes
 searchLinkedInPosts(
   '"ai engineering" AND "junior" AND "remote"',
   2,
-  { enableScreenshots: true }
+  { concurrency: 8 }
 )
   .then(results => {
     console.log('\n✅ Test completed!');
