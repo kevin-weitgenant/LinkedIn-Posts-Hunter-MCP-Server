@@ -1,7 +1,7 @@
 <div align="center">
   <img src="saitama-job-hunting.png" alt="Saitama Job Hunting" width="300"/>
   
-  # LinkedIn Playwright MCP Server
+  # LinkedIn Posts Hunter MCP Server
   
   **Automate LinkedIn job post searching and tracking with AI-powered assistance**
   
@@ -15,7 +15,7 @@
 
 ## 📖 Overview
 
-**LinkedIn Playwright MCP** is a Model Context Protocol (MCP) server that brings LinkedIn job search automation directly into your AI assistant conversations. It uses Playwright to interact with LinkedIn, search for posts, track applications, and manage your job hunt all through natural language commands in Claude or other MCP-compatible AI assistants.
+**LinkedIn Posts Hunter MCP** is a Model Context Protocol (MCP) server that brings LinkedIn job search automation directly into your AI assistant conversations. It uses Playwright to interact with LinkedIn, search for posts, track applications, and manage your job hunt all through natural language commands in Claude or other MCP-compatible AI assistants.
 
 ### Why is this useful?
 
@@ -32,7 +32,7 @@
 The project is built with a modular architecture:
 
 ```
-linkedin-playwright-mcp/
+linkedin-posts-hunter-mcp/
 ├── src/
 │   ├── index.ts                    # Main MCP server entry point
 │   ├── auth/                       # LinkedIn authentication with Playwright
@@ -178,8 +178,8 @@ The easiest way to install is using the pre-built MCP bundle:
 
 1. **Download or clone this repository:**
    ```bash
-   git clone https://github.com/yourusername/linkedin-playwright-mcp.git
-   cd linkedin-playwright-mcp
+   git clone https://github.com/yourusername/linkedin-posts-hunter-mcp.git
+   cd linkedin-posts-hunter-mcp
    ```
 
 2. **Install dependencies:**
@@ -210,8 +210,8 @@ For development or if you're using Cursor IDE:
 
 1. **Clone and install dependencies:**
    ```bash
-   git clone https://github.com/yourusername/linkedin-playwright-mcp.git
-   cd linkedin-playwright-mcp
+   git clone https://github.com/yourusername/linkedin-posts-hunter-mcp.git
+   cd linkedin-posts-hunter-mcp
    npm run install:all
    npm run build
    ```
@@ -234,18 +234,18 @@ For development or if you're using Cursor IDE:
    ```json
    {
      "mcpServers": {
-       "linkedin-playwright-mcp": {
+       "linkedin-posts-hunter-mcp": {
          "command": "node",
          "args": [
-           "F:/projects/linkedin/linkedin-playwright-mcp/build/index.js"
+           "F:/projects/linkedin/linkedin-posts-hunter-mcp/build/index.js"
          ],
-         "cwd": "F:/projects/linkedin/linkedin-playwright-mcp"
+         "cwd": "F:/projects/linkedin/linkedin-posts-hunter-mcp"
        }
      }
    }
    ```
    
-   **⚠️ Important:** Replace `F:/projects/linkedin/linkedin-playwright-mcp` with your actual project path.
+   **⚠️ Important:** Replace `F:/projects/linkedin/linkedin-posts-hunter-mcp` with your actual project path.
 
 4. **Restart Cursor** to load the MCP server.
 
