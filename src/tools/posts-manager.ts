@@ -1,152 +1,90 @@
 import { 
   queryPosts, 
-  updatePostsBulk, 
   deletePostsBulk, 
   countPosts 
 } from '../db/operations.js';
 import type { DbPost } from '../db/operations.js';
 
 export interface PostManagerParams {
-  action: 'read' | 'update' | 'delete';
+  action: 'read' | 'delete' | 'count';
   ids?: number[];
-  search_text?: string;
-  date_from?: string;
-  date_to?: string;
+  keyword?: string;
+  contains?: string;
   limit?: number;
+  offset?: number;
   applied?: boolean;
   saved?: boolean;
-  
-  // For updates only
-  new_description?: string;
-  new_keywords?: string;
-  new_applied?: boolean;
-  new_saved?: boolean;
 }
 
 /**
- * Format post for display
+ * Format post for display (minimal: ID, keyword, description)
  */
 const formatPost = (post: DbPost): string => {
-  const maxDescLength = 300;
-  let desc = post.description;
-  
-  if (desc.length > maxDescLength) {
-    desc = desc.substring(0, maxDescLength) + '...';
-  }
-  
-  const date = new Date(post.search_date).toISOString().split('T')[0];
-  const appliedStatus = post.applied === 1 ? '✓ Applied' : '○ Not Applied';
-  const savedStatus = post.saved === 1 ? '🔖 Saved' : '○ Not Saved';
-  
-  // Build author info line if available
-  let authorInfo = '';
-  if (post.author_name) {
-    authorInfo = `     Author: ${post.author_name}`;
-    if (post.post_date) {
-      authorInfo += ` • ${post.post_date}`;
-    }
-    authorInfo += '\n';
-  }
-  
-  // Build engagement info line if available
-  let engagementInfo = '';
-  if (post.like_count || post.comment_count) {
-    engagementInfo = '     Engagement: ';
-    const parts = [];
-    if (post.like_count) parts.push(`${post.like_count} likes`);
-    if (post.comment_count) parts.push(post.comment_count);
-    engagementInfo += parts.join(' • ') + '\n';
-  }
-  
-  return `#${post.id} | Keywords: ${post.search_keywords}
-     Link: ${post.post_link}
-${authorInfo}${engagementInfo}     Desc: ${desc}
-     Date: ${date}
-     Status: ${appliedStatus} | ${savedStatus}`;
+  return `--- Post #${post.id} ---
+Keyword: ${post.search_keywords}
+Description: ${post.description}
+
+`;
 };
 
 /**
  * Handle read action
  */
 const handleRead = async (params: PostManagerParams): Promise<string> => {
-  const limit = params.limit ?? 10;
+  const limit = params.limit ?? 5;
+  const offset = params.offset ?? 0;
   
   const posts = await queryPosts({
     ids: params.ids,
-    search_text: params.search_text,
-    date_from: params.date_from,
-    date_to: params.date_to,
+    keyword: params.keyword,
+    contains: params.contains,
     applied: params.applied,
     saved: params.saved,
-    limit: limit
+    limit: limit,
+    offset: offset
   });
   
-  const totalPosts = await countPosts();
-  
-  if (posts.length === 0) {
-    return `No posts found matching your criteria.\n\nTotal posts in database: ${totalPosts}`;
-  }
-  
-  let result = `Found ${posts.length} of ${totalPosts} total posts`;
-  
-  if (posts.length >= limit) {
-    result += ` (showing up to ${limit})`;
-  }
-  
-  const filters = [];
-  if (params.applied !== undefined) {
-    filters.push(`applied: ${params.applied ? 'yes' : 'no'}`);
-  }
-  if (params.saved !== undefined) {
-    filters.push(`saved: ${params.saved ? 'yes' : 'no'}`);
-  }
-  if (filters.length > 0) {
-    result += ` (filtered by: ${filters.join(', ')})`;
-  }
-  
-  result += ':\n\n';
-  
-  posts.forEach(post => {
-    result += formatPost(post) + '\n\n';
-  });
-  
-  result += `💡 Use IDs to update/delete specific posts.`;
-  
-  return result;
-};
-
-/**
- * Handle update action
- */
-const handleUpdate = async (params: PostManagerParams): Promise<string> => {
-  if (!params.new_description && !params.new_keywords && params.new_applied === undefined && params.new_saved === undefined) {
-    return 'Error: Must provide new_description, new_keywords, new_applied, or new_saved for update action.';
-  }
-  
-  // First, get the posts to update based on filters
-  const postsToUpdate = await queryPosts({
-    ids: params.ids,
-    search_text: params.search_text,
-    date_from: params.date_from,
-    date_to: params.date_to,
+  const totalPosts = await countPosts({
+    keyword: params.keyword,
+    contains: params.contains,
     applied: params.applied,
     saved: params.saved
   });
   
-  if (postsToUpdate.length === 0) {
-    return 'No posts found matching your criteria. No updates made.';
+  if (posts.length === 0) {
+    return `No posts found matching your criteria.\n\nTotal posts in database: ${await countPosts()}`;
   }
   
-  const postIds = postsToUpdate.map(p => p.id);
+  // Build context description
+  const contextParts: string[] = [];
+  if (params.keyword) contextParts.push(`keyword: "${params.keyword}"`);
+  if (params.contains) contextParts.push(`containing: "${params.contains}"`);
+  if (params.applied !== undefined) contextParts.push(`applied: ${params.applied ? 'yes' : 'no'}`);
+  if (params.saved !== undefined) contextParts.push(`saved: ${params.saved ? 'yes' : 'no'}`);
   
-  const updateCount = await updatePostsBulk(postIds, {
-    new_description: params.new_description,
-    new_keywords: params.new_keywords,
-    new_applied: params.new_applied,
-    new_saved: params.new_saved
+  let result = '';
+  
+  if (contextParts.length > 0) {
+    result += `Found ${totalPosts} posts (${contextParts.join(', ')})\n`;
+  } else {
+    result += `Found ${totalPosts} posts\n`;
+  }
+  
+  result += `Showing ${posts.length} posts (offset: ${offset}):\n\n`;
+  
+  posts.forEach(post => {
+    result += formatPost(post);
   });
   
-  return `✓ Updated ${updateCount} ${updateCount === 1 ? 'post' : 'posts'} (IDs: ${postIds.join(', ')})`;
+  // Pagination hint
+  const nextOffset = offset + posts.length;
+  if (nextOffset < totalPosts) {
+    result += `\n💡 Next batch: use offset=${nextOffset}`;
+  } else {
+    result += `\n✓ All posts shown`;
+  }
+  
+  return result;
 };
 
 /**
@@ -156,9 +94,8 @@ const handleDelete = async (params: PostManagerParams): Promise<string> => {
   // First, get the posts to delete based on filters
   const postsToDelete = await queryPosts({
     ids: params.ids,
-    search_text: params.search_text,
-    date_from: params.date_from,
-    date_to: params.date_to,
+    keyword: params.keyword,
+    contains: params.contains,
     applied: params.applied,
     saved: params.saved
   });
@@ -174,6 +111,31 @@ const handleDelete = async (params: PostManagerParams): Promise<string> => {
 };
 
 /**
+ * Handle count action
+ */
+const handleCount = async (params: PostManagerParams): Promise<string> => {
+  const total = await countPosts({
+    keyword: params.keyword,
+    contains: params.contains,
+    applied: params.applied,
+    saved: params.saved
+  });
+  
+  // Build context description
+  const contextParts: string[] = [];
+  if (params.keyword) contextParts.push(`keyword: "${params.keyword}"`);
+  if (params.contains) contextParts.push(`containing: "${params.contains}"`);
+  if (params.applied !== undefined) contextParts.push(`applied: ${params.applied ? 'yes' : 'no'}`);
+  if (params.saved !== undefined) contextParts.push(`saved: ${params.saved ? 'yes' : 'no'}`);
+  
+  if (contextParts.length > 0) {
+    return `Found ${total} posts (${contextParts.join(', ')})`;
+  } else {
+    return `Total posts in database: ${total}`;
+  }
+};
+
+/**
  * Main handler for post manager tool
  */
 export const handleLinkedInManagePosts = async (params: PostManagerParams) => {
@@ -185,16 +147,16 @@ export const handleLinkedInManagePosts = async (params: PostManagerParams) => {
         result = await handleRead(params);
         break;
         
-      case 'update':
-        result = await handleUpdate(params);
-        break;
-        
       case 'delete':
         result = await handleDelete(params);
         break;
         
+      case 'count':
+        result = await handleCount(params);
+        break;
+        
       default:
-        result = `Error: Unknown action "${params.action}". Use: read, update, or delete.`;
+        result = `Error: Unknown action "${params.action}". Use: read, delete, or count.`;
     }
     
     return {

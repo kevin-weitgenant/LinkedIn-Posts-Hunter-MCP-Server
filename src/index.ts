@@ -63,15 +63,15 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             pagination: {
               type: "number",
-              description: "Number of scroll pages to load more results (default: 3, max recommended: 10)",
-              default: 3,
+              description: "Number of scroll pages to load more results)",
+              default: 2,
               minimum: 1,
               maximum: 10
             },
             headless: {
               type: "boolean",
-              description: "Run browser in headless mode (default: false). Headless mode is faster and uses less resources. Note: Authentication always uses visible browser.",
-              default: false
+              description: "Run browser in headless mode (default: true). Headless mode is faster and uses less resources. ",
+              default: true
             }
           },
           required: ["keywords"]
@@ -79,54 +79,48 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: "linkedin_manage_posts",
-        description: "Read, update, or delete posts from the LinkedIn database. Filters by ID, keywords, content, date range, or applied status. Only returns matching entries to minimize context.",
+        description: "Query and manage LinkedIn posts. Focused on keywords + descriptions. Process in small batches to manage context efficiently.",
         inputSchema: {
           type: "object",
           properties: {
             action: {
               type: "string",
-              enum: ["read", "update", "delete"],
-              description: "Action to perform: 'read' to query entries, 'update' to modify entries, 'delete' to remove entries"
+              enum: ["read", "delete", "count"],
+              description: "read: get posts with full descriptions | delete: remove posts | count: get totals with filters"
+            },
+            keyword: {
+              type: "string",
+              description: "Filter by LinkedIn search keyword column (e.g., 'python engineer', 'backend developer')"
+            },
+            contains: {
+              type: "string",
+              description: "Search for text within post descriptions (e.g., 'remote', '$150k', 'healthcare benefits')"
             },
             ids: {
               type: "array",
               items: { type: "number" },
-              description: "Filter by specific entry IDs (e.g., [1, 5, 10])"
-            },
-            search_text: {
-              type: "string",
-              description: "Search text to match in keywords or description fields"
-            },
-            date_from: {
-              type: "string",
-              description: "Filter entries from this date (ISO format: YYYY-MM-DD)"
-            },
-            date_to: {
-              type: "string",
-              description: "Filter entries until this date (ISO format: YYYY-MM-DD)"
+              description: "Specific post IDs to read or delete"
             },
             limit: {
               type: "number",
-              description: "Maximum number of entries to return (default: 10, max: 50)",
-              default: 10,
+              description: "How many posts to return (default: 5, max: 20). Use small batches to manage context.",
+              default: 5,
               minimum: 1,
-              maximum: 50
+              maximum: 20
+            },
+            offset: {
+              type: "number",
+              description: "Skip first N posts for pagination (default: 0). Use with limit to process posts in batches.",
+              default: 0,
+              minimum: 0
             },
             applied: {
               type: "boolean",
-              description: "Filter by applied status: true for applied posts, false for not applied"
+              description: "Filter by applied status: true for applied, false for not applied"
             },
-            new_description: {
-              type: "string",
-              description: "New description text (for update action only)"
-            },
-            new_keywords: {
-              type: "string",
-              description: "New keywords text (for update action only)"
-            },
-            new_applied: {
+            saved: {
               type: "boolean",
-              description: "New applied status (for update action only): true to mark as applied, false to mark as not applied"
+              description: "Filter by saved status: true for saved, false for not saved"
             }
           },
           required: ["action"]

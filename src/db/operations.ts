@@ -88,11 +88,48 @@ export async function getAllPosts(): Promise<DbPost[]> {
 }
 
 /**
- * Count total posts in database
+ * Count total posts in database with optional filters
  */
-export async function countPosts(): Promise<number> {
+export async function countPosts(params?: {
+  keyword?: string;
+  contains?: string;
+  applied?: boolean;
+  saved?: boolean;
+}): Promise<number> {
   const db = await getDatabase();
-  const result = db.exec('SELECT COUNT(*) as count FROM posts');
+  
+  let sql = 'SELECT COUNT(*) as count FROM posts WHERE 1=1';
+  const bindings: any[] = [];
+  
+  if (params) {
+    // Filter by keyword
+    if (params.keyword) {
+      sql += ` AND search_keywords LIKE ?`;
+      const searchPattern = `%${params.keyword}%`;
+      bindings.push(searchPattern);
+    }
+    
+    // Filter by content
+    if (params.contains) {
+      sql += ` AND description LIKE ?`;
+      const searchPattern = `%${params.contains}%`;
+      bindings.push(searchPattern);
+    }
+    
+    // Filter by applied status
+    if (params.applied !== undefined) {
+      sql += ` AND applied = ?`;
+      bindings.push(params.applied ? 1 : 0);
+    }
+    
+    // Filter by saved status
+    if (params.saved !== undefined) {
+      sql += ` AND saved = ?`;
+      bindings.push(params.saved ? 1 : 0);
+    }
+  }
+  
+  const result = db.exec(sql, bindings);
   
   if (result.length > 0 && result[0].values.length > 0) {
     return result[0].values[0][0] as number;
@@ -173,14 +210,14 @@ export async function getPostById(id: number): Promise<DbPost | null> {
 }
 
 /**
- * Query posts with filters - supports search_text, date range, IDs, limit, applied status, saved status
+ * Query posts with filters - supports keyword, contains, IDs, limit, offset, applied status, saved status
  */
 export async function queryPosts(params: {
   ids?: number[];
-  search_text?: string;
-  date_from?: string;
-  date_to?: string;
+  keyword?: string;
+  contains?: string;
   limit?: number;
+  offset?: number;
   applied?: boolean;
   saved?: boolean;
 }): Promise<DbPost[]> {
@@ -196,22 +233,18 @@ export async function queryPosts(params: {
     bindings.push(...params.ids);
   }
   
-  // Filter by search text (searches in keywords and description)
-  if (params.search_text) {
-    sql += ` AND (search_keywords LIKE ? OR description LIKE ?)`;
-    const searchPattern = `%${params.search_text}%`;
-    bindings.push(searchPattern, searchPattern);
+  // Filter by keyword (search_keywords column)
+  if (params.keyword) {
+    sql += ` AND search_keywords LIKE ?`;
+    const searchPattern = `%${params.keyword}%`;
+    bindings.push(searchPattern);
   }
   
-  // Filter by date range
-  if (params.date_from) {
-    sql += ` AND search_date >= ?`;
-    bindings.push(params.date_from);
-  }
-  
-  if (params.date_to) {
-    sql += ` AND search_date <= ?`;
-    bindings.push(params.date_to);
+  // Filter by content (description column)
+  if (params.contains) {
+    sql += ` AND description LIKE ?`;
+    const searchPattern = `%${params.contains}%`;
+    bindings.push(searchPattern);
   }
   
   // Filter by applied status
@@ -233,6 +266,12 @@ export async function queryPosts(params: {
   if (params.limit) {
     sql += ' LIMIT ?';
     bindings.push(params.limit);
+  }
+  
+  // Offset for pagination
+  if (params.offset) {
+    sql += ' OFFSET ?';
+    bindings.push(params.offset);
   }
   
   const result = db.exec(sql, bindings);

@@ -153,7 +153,9 @@ function App() {
         }
       })
     })
-    return Array.from(keywords).sort()
+    return Array.from(keywords).sort((a, b) => 
+      a.toLowerCase().localeCompare(b.toLowerCase())
+    )
   }, [posts])
 
   // Fetch posts from API
