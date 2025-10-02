@@ -55,7 +55,6 @@ export function getFilterState(): FilterState {
       ...state
     };
   } catch (error) {
-    console.error('Failed to read filter state, using defaults:', error);
     return { ...DEFAULT_FILTER_STATE };
   }
 }

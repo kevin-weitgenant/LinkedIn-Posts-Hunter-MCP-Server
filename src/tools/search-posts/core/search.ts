@@ -54,21 +54,13 @@ const processPost = async (
   let postPage: Page | null = null;
   
   try {
-    console.error(`[${index + 1}/${total}] Processing: ${urn}`);
     postPage = await context.newPage();
     await postPage.goto(url, { waitUntil: 'domcontentloaded', timeout: 0 });
     
     const result = await extractPostContent(postPage, url, urn);
     
-    if (result.description.startsWith('[')) {
-      console.error(`⚠️  [${index + 1}] Warning: ${result.description} for ${urn}`);
-    } else {
-      console.error(`✅ [${index + 1}] Successfully processed: ${urn}`);
-    }
-    
     return result;
   } catch (error) {
-    console.error(`❌ [${index + 1}] Failed to process ${urn}:`, error instanceof Error ? error.message : error);
     return {
       link: url,
       description: '[Post processing failed - page may not have loaded]'
@@ -144,11 +136,8 @@ const performSearch = async (
     const uniqueUrns = Array.from(new Set(urns));
     
     if (uniqueUrns.length === 0) {
-      console.error('No posts found in search results');
       return [];
     }
-    
-    console.error(`Found ${uniqueUrns.length} unique posts to process`);
     
     // Process posts concurrently
     const actualConcurrency = Math.min(concurrency, uniqueUrns.length);
@@ -157,11 +146,6 @@ const performSearch = async (
       uniqueUrns,
       actualConcurrency
     );
-    
-    // Log processing statistics
-    const successCount = results.filter(r => !r.description.startsWith('[')).length;
-    const failedCount = results.length - successCount;
-    console.error(`\n📊 Processing complete: ${successCount} successful, ${failedCount} failed out of ${results.length} total posts`);
     
     return results;
   } finally {
@@ -175,7 +159,7 @@ const performSearch = async (
  * 
  * @param keywords - Search keywords
  * @param pagination - Number of scroll pages to load (default: 3)
- * @param options - Search options (screenshots, concurrency)
+ * @param options - Search options (headless mode, concurrency)
  * @returns Array of post results
  * @throws Error if authentication is invalid or search fails
  */
@@ -191,7 +175,9 @@ export const searchLinkedInPosts = async (
   }
   
   // Launch browser with saved auth
-  const browser: Browser = await chromium.launch({ headless: false });
+  // Use headless mode from options (default: false for visibility)
+  const { headless = false } = options;
+  const browser: Browser = await chromium.launch({ headless });
   const context: BrowserContext = await browser.newContext({ storageState: authData });
   
   try {

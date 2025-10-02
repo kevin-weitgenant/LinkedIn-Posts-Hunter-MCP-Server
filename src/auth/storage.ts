@@ -51,7 +51,6 @@ export const loadAuthData = async (): Promise<AuthData | null> => {
     const data = fs.readFileSync(authPath, 'utf8');
     return JSON.parse(data) as AuthData;
   } catch (error) {
-    console.warn('Failed to load auth data:', error);
     return null;
   }
 };

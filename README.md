@@ -8,6 +8,10 @@
   [![MCP](https://img.shields.io/badge/MCP-Server-blue)](https://modelcontextprotocol.io)
   [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)](https://www.typescriptlang.org/)
   [![Playwright](https://img.shields.io/badge/Playwright-1.55-green)](https://playwright.dev/)
+  [![React](https://img.shields.io/badge/React-18.3-blue)](https://react.dev/)
+  [![Express](https://img.shields.io/badge/Express-5.1-green)](https://expressjs.com/)
+  [![Vite](https://img.shields.io/badge/Vite-7.1-purple)](https://vitejs.dev/)
+  [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.4-cyan)](https://tailwindcss.com/)
   
 </div>
 
@@ -15,62 +19,43 @@
 
 ## 📖 Overview
 
-**LinkedIn Posts Hunter MCP** is a Model Context Protocol (MCP) server that brings LinkedIn job search automation directly into your AI assistant conversations. It uses Playwright to interact with LinkedIn, search for posts, track applications, and manage your job hunt all through natural language commands in Claude or other MCP-compatible AI assistants.
+**LinkedIn Posts Hunter MCP** is a Model Context Protocol (MCP) server that provides tools for automating LinkedIn job post search and management through your AI assistant (Claude Desktop, Cursor, or other MCP-compatible clients).
 
-### Why is this useful?
+### How it works:
 
-- **AI-Powered Job Search**: Ask Claude to search LinkedIn for specific job opportunities
-- **Automated Tracking**: Keep track of which posts you've applied to with a built-in SQLite database
-- **Visual Interface**: Launch a beautiful React dashboard to browse and filter saved posts
-- **Persistent Sessions**: Save your LinkedIn authentication for seamless repeated use
-- **Natural Language Control**: Manage your job search through conversation with your AI assistant
+**1. Authentication & Scraping**
+- The MCP server exposes a Playwright-based tool that your AI assistant can invoke to automate browser interactions with LinkedIn
+- First-time use requires logging into LinkedIn through a browser window to capture session cookies
+- These cookies are **stored locally on your computer** for persistent authentication
+- Once authenticated, your AI assistant can call the search tool with keywords (either from your conversation or suggested by the AI) to scrape job posts
 
----
+**2. Local Data Storage**
+- All scraped posts are saved to a **local SQLite database** on your machine
+- The database stores post content, metadata (author, dates, engagement metrics), and tracking info (whether you've applied)
+- Your data never leaves your computer
 
-## 🏗️ Architecture
+**3. Visual Interface**
+- A separate tool launches a **React dashboard** that renders the scraped posts from your local database
+- The UI provides table/card views, advanced filtering, and quick actions (mark as applied,save, edit, delete, etc.)
+- Changes made in the React app are written to the local database
 
-The project is built with a modular architecture:
+**4. Dual Control**
+- You can manage posts through **either** the React UI **or** through MCP tools like `linkedin_manage_posts` and `linkedin_set_filters`
+- The React app updates via **polling**, so changes made through MCP commands are reflected in the UI
+- This gives you flexibility: use natural language commands with your AI assistant, or point-and-click in the dashboard
 
-```
-linkedin-posts-hunter-mcp/
-├── src/
-│   ├── index.ts                    # Main MCP server entry point
-│   ├── auth/                       # LinkedIn authentication with Playwright
-│   │   ├── browser.ts              # Headless browser automation
-│   │   └── storage.ts              # Secure credential storage
-│   ├── db/                         # SQLite database layer
-│   │   ├── database.ts             # Database initialization & schema
-│   │   └── operations.ts           # CRUD operations for posts
-│   ├── tools/                      # MCP tool implementations
-│   │   ├── authenticate.ts         # LinkedIn auth tool
-│   │   ├── search-posts/           # Post search functionality
-│   │   │   ├── core/search.ts      # Main search logic
-│   │   │   ├── extractors/         # Content & metadata extraction
-│   │   │   └── mcp-handler.ts      # MCP integration
-│   │   ├── posts-manager.ts        # Database management tool
-│   │   ├── filter-manager.ts       # Filter control for UI
-│   │   └── start-server.ts         # Vite dev server launcher
-│   ├── client-vite/                # React + TypeScript UI
-│   │   ├── src/
-│   │   │   ├── App.tsx             # Main React app
-│   │   │   └── components/         # UI components
-│   │   │       ├── FilterView.tsx  # Filter sidebar
-│   │   │       ├── TableView.tsx   # Posts table
-│   │   │       └── LinkedInPostCard.tsx # Post cards
-│   │   └── dist/                   # Built static assets
-│   └── utils/                      # Shared utilities
-└── build/                          # Compiled JavaScript output
-```
 
-### Key Components
 
-1. **MCP Server** (`src/index.ts`): Registers and handles all tool calls from the AI assistant
-2. **Playwright Automation** (`src/auth/`, `src/tools/search-posts/`): Automates LinkedIn interactions
-3. **SQLite Database** (`src/db/`): Stores searched posts with metadata (author, dates, engagement metrics)
-4. **React Dashboard** (`src/client-vite/`): Visual interface for browsing and filtering posts
-5. **Express API** (`src/tools/server-api/`): Serves the React app and provides REST endpoints
+### 🎨 Diagram
+
+<div align="center">
+  <img src="diagram.png" alt="LinkedIn MCP Architecture Diagram" width="800"/>
+  <p><em>Complete system architecture showing all components and their interactions</em></p>
+</div>
 
 ---
+
+
 
 ## 🛠️ Available Tools
 

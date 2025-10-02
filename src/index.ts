@@ -8,8 +8,9 @@ import {
 import { handleLinkedInAuth } from './tools/authenticate.js';
 import { handleLinkedInSearchPosts } from './tools/search-posts/mcp-handler.js';
 import { handleLinkedInManagePosts } from './tools/posts-manager.js';
-import { handleLinkedInSetFilters } from './tools/filter-manager.js';
+import { handleLinkedInManageFilters } from './tools/filter-manager.js';
 import { startViteViewer, stopViteViewer } from './tools/start-server.js';
+import { closeDatabase } from './db/database.js';
 
 // Initialize MCP server
 const server = new Server(
@@ -64,6 +65,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               default: 3,
               minimum: 1,
               maximum: 10
+            },
+            headless: {
+              type: "boolean",
+              description: "Run browser in headless mode (default: false). Headless mode is faster and uses less resources. Note: Authentication always uses visible browser.",
+              default: false
             }
           },
           required: ["keywords"]
@@ -143,37 +149,43 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
-        name: "linkedin_set_filters",
-        description: "Control the LinkedIn post viewer filters from MCP. Updates filter state that React app polls and displays. Both MCP and manual UI changes sync to shared state file.",
+        name: "linkedin_manage_filters",
+        description: "Read or update the LinkedIn post viewer filters. Filter state syncs between MCP and the React viewer UI.",
         inputSchema: {
           type: "object",
           properties: {
+            action: {
+              type: "string",
+              enum: ["read", "update"],
+              description: "Action to perform: 'read' to get current filter state, 'update' to change filters"
+            },
             keyword: {
               type: "string",
-              description: "Filter by specific keyword (empty string for 'All Keywords')"
+              description: "Filter by specific keyword (empty string for 'All Keywords') - only for update action"
             },
             applied_status: {
               type: "string",
               enum: ["all", "applied", "not-applied"],
-              description: "Filter by application status: 'all' (default), 'applied', or 'not-applied'"
+              description: "Filter by application status: 'all' (default), 'applied', or 'not-applied' - only for update action"
             },
             start_date: {
               type: "string",
-              description: "Filter posts from this date onwards (ISO format: YYYY-MM-DD, e.g., '2024-01-15')"
+              description: "Filter posts from this date onwards (ISO format: YYYY-MM-DD, e.g., '2024-01-15') - only for update action"
             },
             end_date: {
               type: "string",
-              description: "Filter posts up to this date (ISO format: YYYY-MM-DD, e.g., '2024-12-31')"
+              description: "Filter posts up to this date (ISO format: YYYY-MM-DD, e.g., '2024-12-31') - only for update action"
             },
             ids: {
               type: "string",
-              description: "Filter by specific post IDs, comma-separated (e.g., '1,5,10')"
+              description: "Filter by specific post IDs, comma-separated (e.g., '1,5,10') - only for update action"
             },
             reset: {
               type: "boolean",
-              description: "If true, reset all filters to default state (clears all filters)"
+              description: "If true, reset all filters to default state (clears all filters) - only for update action"
             }
-          }
+          },
+          required: ["action"]
         },
       }
     ],
@@ -213,8 +225,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           }]
         };
         
-      case "linkedin_set_filters":
-        return await handleLinkedInSetFilters(params as any);
+      case "linkedin_manage_filters":
+        return await handleLinkedInManageFilters(params as any);
         
       default:
         throw new Error(`Unknown tool: ${name}`);
@@ -235,3 +247,58 @@ await server.connect(transport);
 
 // MCP servers communicate via JSON-RPC over stdin/stdout
 // Do not write anything to stdout or it will corrupt the protocol
+
+// Graceful shutdown handlers
+// Ensures proper cleanup of resources when the MCP server stops
+const cleanup = async () => {
+  try {
+    // Close database connection and save any pending changes
+    closeDatabase();
+    
+    // Stop any running Vite viewer servers
+    stopViteViewer();
+  } catch (error) {
+    // Silently handle cleanup errors to avoid protocol corruption
+  }
+  
+  process.exit(0);
+};
+
+// Handle termination signals
+process.on('SIGTERM', cleanup);  // Docker/systemd termination
+process.on('SIGINT', cleanup);   // Ctrl+C in terminal
+
+// Handle normal process exit
+process.on('exit', () => {
+  // Final cleanup - must be synchronous
+  try {
+    closeDatabase();
+  } catch (error) {
+    // Ignore errors during final cleanup
+  }
+});
+
+// Global error handlers to prevent crashes
+// These catch unhandled errors that could otherwise crash the MCP server
+process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
+  // Log to stderr (not stdout, to avoid corrupting MCP protocol)
+  // Don't crash the server - just handle the error gracefully
+  try {
+    closeDatabase(); // Ensure DB is saved
+  } catch (error) {
+    // Ignore cleanup errors
+  }
+});
+
+process.on('uncaughtException', (error: Error) => {
+  // Critical error - attempt cleanup and exit gracefully
+  try {
+    closeDatabase();
+    stopViteViewer();
+  } catch (cleanupError) {
+    // Ignore cleanup errors
+  }
+  
+  // Exit with error code
+  process.exit(1);
+});

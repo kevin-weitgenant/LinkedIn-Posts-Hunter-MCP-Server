@@ -60,7 +60,7 @@ const formatDatabaseInfo = (saveResult: {
  * 3. Formats MCP response
  */
 export const handleLinkedInSearchPosts = async (params: SearchPostsParams) => {
-  const { keywords, pagination = 3 } = params;
+  const { keywords, pagination = 3, headless = false } = params;
   
   // Validate input
   if (!keywords?.trim()) {
@@ -74,7 +74,7 @@ export const handleLinkedInSearchPosts = async (params: SearchPostsParams) => {
   
   try {
     // Call core search function (no database operations)
-    const results = await searchLinkedInPosts(keywords, pagination);
+    const results = await searchLinkedInPosts(keywords, pagination, { headless });
     
     // Handle empty results
     if (results.length === 0) {
@@ -93,7 +93,6 @@ export const handleLinkedInSearchPosts = async (params: SearchPostsParams) => {
       databaseInfo = formatDatabaseInfo(saveResult);
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      console.error('Failed to save search results:', error);
       databaseInfo = `\n\n⚠️ Failed to save to database: ${errorMsg}`;
     }
     

@@ -5,6 +5,7 @@
 export interface SearchPostsParams {
   keywords: string;
   pagination?: number;
+  headless?: boolean;
 }
 
 export interface PostResult {
@@ -20,6 +21,7 @@ export interface PostResult {
 
 export interface SearchOptions {
   concurrency?: number;
+  headless?: boolean;
 }
 
 

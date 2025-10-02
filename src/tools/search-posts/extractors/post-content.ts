@@ -29,7 +29,6 @@ export const extractDescription = async (page: Page): Promise<string> => {
     
     return description;
   } catch (error) {
-    console.error('Failed to extract description:', error instanceof Error ? error.message : error);
     return '[Description extraction failed]';
   }
 };
