@@ -2,13 +2,20 @@
   "name": "linkedin-posts-hunter-mcp",
   "version": "1.0.0",
   "description": "LinkedIn MCP server with Playwright automation for authentication and post searching",
-  "main": "build/src/index.js",
+  "main": "build/index.js",
   "type": "module",
+  "bin": {
+    "linkedin-posts-hunter-mcp": "build/index.js"
+  },
+  "files": [
+    "build/",
+    "README.md"
+  ],
   "scripts": {
     "clean": "rimraf build",
     "build": "npm run clean && tsc && npm run build-client && npm run copy-client",
     "build-client": "cd src/client-vite && npm run build",
-    "copy-client": "xcopy src\\client-vite\\dist build\\client-vite\\dist /E /I /Y /Q",
+    "copy-client": "cpx \"src/client-vite/dist/**/*\" build/client-vite/dist",
     "pack": "npx @anthropic-ai/mcpb pack",
     "mcpb": "npm run clean && npm run build && npm run pack",
     "dev": "tsx src/index.ts",
@@ -16,22 +23,47 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "auth:login": "tsx scripts/auth-login-save.ts",
     "auth:run": "tsx scripts/run-with-auth.ts",
-    "install:all": "npm install && cd src/client-vite && npm install && echo 'All dependencies(client vite included) installed successfully!'"
+    "install:all": "npm install && cd src/client-vite && npm install && echo 'All dependencies(client vite included) installed successfully!'",
+    "prepublishOnly": "npm run build",
+    "postinstall": "playwright install chromium"
   },
   "keywords": [
     "mcp",
+    "AI",
+    "data analysis",
+    "react",
+    "scraping",
     "linkedin",
     "playwright",
-    "automation"
+    "automation",
+    "job-search",
+    "model-context-protocol",
+    "claude",
+    "cursor"
   ],
-  "author": "",
+  "author": {
+    "name": "Kevin Weitgenant",
+    "email": "kevin.weitgenant@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kevin-weitgenant/LinkedIn-Posts-Hunter-MCP-Server.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kevin-weitgenant/LinkedIn-Posts-Hunter-MCP-Server/issues"
+  },
+  "homepage": "https://github.com/kevin-weitgenant/LinkedIn-Posts-Hunter-MCP-Server#readme",
   "license": "ISC",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.18.2",
     "@tanstack/react-table": "^8.21.3",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "cors": "^2.8.5",
+    "cpx2": "^7.0.1",
     "express": "^5.1.0",
     "open": "^10.1.0",
     "playwright": "^1.55.1",

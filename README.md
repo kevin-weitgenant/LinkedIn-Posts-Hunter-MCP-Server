@@ -157,86 +157,133 @@ Stop the running Vite development server.
 ### Prerequisites
 
 - **Node.js** 18 or higher
-- **npm** or **yarn**
+- **npm** (for Method 1)
 - A LinkedIn account
-- **Cursor IDE** (for mcp.json method) or **Claude Desktop** (for .mcpb method)
+- **Cursor IDE** or **Claude Desktop**
 
-### Method 1: Using the Pre-built .mcpb Package
+---
 
-The easiest way to install is using the pre-built MCP bundle:
+### Method 1: Global npm Install (Recommended) ⭐
 
-1. **Download or clone this repository:**
+**Works for:** Cursor IDE and Claude Desktop
+
+The easiest way to install is via npm:
+
+1. **Install globally:**
    ```bash
-   git clone https://github.com/yourusername/linkedin-posts-hunter-mcp.git
-   cd linkedin-posts-hunter-mcp
+   npm install -g linkedin-posts-hunter-mcp
    ```
 
-2. **Install dependencies:**
-   ```bash
-   npm run install:all
-   ```
-   This installs dependencies for both the main server and the React client.
+   This will:
+   - Install the package globally
+   - Create the `linkedin-posts-hunter-mcp` command
+   - Automatically install Playwright Chromium browser
 
-3. **Build the project:**
-   ```bash
-   npm run build
+2. **Add to your MCP configuration:**
+
+   **For Cursor IDE:**
+   
+   Open or create `mcp.json` at:
+   - **macOS/Linux:** `~/Library/Application Support/Cursor/User/globalStorage/mcp.json`
+   - **Windows:** `%APPDATA%\Cursor\User\globalStorage\mcp.json`
+   
+   Add this configuration:
+   ```json
+   {
+     "mcpServers": {
+       "linkedin-posts-hunter-mcp": {
+         "command": "linkedin-posts-hunter-mcp"
+       }
+     }
+   }
    ```
 
-4. **Create the .mcpb package:**
-   ```bash
-   npm run pack
+   **For Claude Desktop:**
+   
+   Open or create `claude_desktop_config.json` at:
+   - **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+   - **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+   
+   Add this configuration:
+   ```json
+   {
+     "mcpServers": {
+       "linkedin-posts-hunter-mcp": {
+         "command": "linkedin-posts-hunter-mcp"
+       }
+     }
+   }
    ```
-   This generates `linkedin-playwright-mcp.mcpb` in the project root.
 
-5. **Install the package in Claude Desktop:**
+3. **Restart your MCP client** (Cursor or Claude Desktop)
+
+That's it! No need to clone the repository or manage local builds.
+
+---
+
+### Method 2: Download Pre-built .mcpb Package (Claude Desktop Only) 🎁
+
+**Works for:** Claude Desktop only
+
+Perfect if you want a one-click installation without npm:
+
+1. **Download the latest `.mcpb` file** from the [Releases page](https://github.com/kevin-weitgenant/LinkedIn-Posts-Hunter-MCP-Server/releases)
+
+2. **Install with one click:**
    - Double-click the `.mcpb` file, or
-   - Drag it onto the Claude Desktop app, or
-   - Use the Claude Desktop settings to add the package manually
+   - Drag it onto the Claude Desktop app
 
-### Method 2: Using mcp.json in Cursor IDE
+3. **Done!** Claude Desktop automatically configures everything for you.
 
-For development or if you're using Cursor IDE:
+---
+
+### Method 3: Local Development Setup
+
+For developers who want to modify the code or contribute:
 
 1. **Clone and install dependencies:**
    ```bash
-   git clone https://github.com/yourusername/linkedin-posts-hunter-mcp.git
-   cd linkedin-posts-hunter-mcp
+   git clone https://github.com/kevin-weitgenant/LinkedIn-Posts-Hunter-MCP-Server.git
+   cd LinkedIn-Posts-Hunter-MCP-Server
    npm run install:all
    npm run build
    ```
 
-2. **Locate or create your MCP configuration file:**
-   
-   - **On macOS/Linux:**
-     ```bash
-     mkdir -p ~/Library/Application\ Support/Cursor/User/globalStorage/
-     code ~/Library/Application\ Support/Cursor/User/globalStorage/mcp.json
-     ```
-   
-   - **On Windows:**
-     ```powershell
-     mkdir -Force "$env:APPDATA\Cursor\User\globalStorage"
-     notepad "$env:APPDATA\Cursor\User\globalStorage\mcp.json"
-     ```
+2. **Add to your MCP configuration:**
 
-3. **Add the server configuration to `mcp.json`:**
+   **For Cursor IDE** (`mcp.json`):
    ```json
    {
      "mcpServers": {
        "linkedin-posts-hunter-mcp": {
          "command": "node",
          "args": [
-           "F:/projects/linkedin/linkedin-posts-hunter-mcp/build/index.js"
+           "/absolute/path/to/LinkedIn-Posts-Hunter-MCP-Server/build/index.js"
          ],
-         "cwd": "F:/projects/linkedin/linkedin-posts-hunter-mcp"
+         "cwd": "/absolute/path/to/LinkedIn-Posts-Hunter-MCP-Server"
+       }
+     }
+   }
+   ```
+
+   **For Claude Desktop** (`claude_desktop_config.json`):
+   ```json
+   {
+     "mcpServers": {
+       "linkedin-posts-hunter-mcp": {
+         "command": "node",
+         "args": [
+           "/absolute/path/to/LinkedIn-Posts-Hunter-MCP-Server/build/index.js"
+         ],
+         "cwd": "/absolute/path/to/LinkedIn-Posts-Hunter-MCP-Server"
        }
      }
    }
    ```
    
-   **⚠️ Important:** Replace `F:/projects/linkedin/linkedin-posts-hunter-mcp` with your actual project path.
+   **⚠️ Important:** Replace `/absolute/path/to/LinkedIn-Posts-Hunter-MCP-Server` with your actual project path.
 
-4. **Restart Cursor** to load the MCP server.
+3. **Restart your MCP client** to load the server.
 
 ---
 
