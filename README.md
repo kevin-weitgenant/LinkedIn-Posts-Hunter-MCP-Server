@@ -340,37 +340,7 @@ The built-in web viewer (`start_vite_viewer`) provides:
 
 ---
 
-## 🔒 Security & Privacy
 
-- **Credentials**: LinkedIn cookies are stored locally in your system's user data directory
-- **No cloud sync**: All data stays on your machine
-- **Playwright**: Uses a real browser for authentication (more secure than API scraping)
-- **Read-only by default**: Only writes to the database when you explicitly save posts
-
----
-
-## 🐛 Troubleshooting
-
-### "Tool not found" error
-- Make sure you've restarted Cursor/Claude Desktop after installation
-- Verify the MCP server is listed in the available servers
-
-### Authentication fails
-- LinkedIn may require 2FA - complete it in the browser window
-- Try `force_reauth: true` to start fresh
-
-### Browser doesn't open
-- Check that Playwright browsers are installed: `npx playwright install`
-
-### Client won't build
-- Ensure client dependencies are installed: `cd src/client-vite && npm install`
-
-### Database errors with .mcpb (Node.js version mismatch)
-- **Fixed in v1.0.0+**: Now uses sql.js (pure JavaScript) instead of better-sqlite3
-- No native module compilation needed - works across all Node.js versions
-- If you installed an older version, reinstall the latest .mcpb package
-
----
 
 ## 📄 License
 
@@ -384,17 +354,9 @@ Contributions are welcome! Feel free to open issues or submit pull requests.
 
 ---
 
-## 🙏 Acknowledgments
 
-Built with:
-- [Model Context Protocol](https://modelcontextprotocol.io) by Anthropic
-- [Playwright](https://playwright.dev) for browser automation
-- [React](https://react.dev) + [Vite](https://vitejs.dev) for the UI
-- [SQLite](https://www.sqlite.org) via sql.js (pure JavaScript, no native dependencies)
-
----
 
 <div align="center">
-  <sub>Job hunting has never been this easy. Let Saitama help you find your next opportunity! 💼🥊</sub>
+ 
 </div>
 
