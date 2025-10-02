@@ -13,6 +13,10 @@
   [![Vite](https://img.shields.io/badge/Vite-7.1-purple)](https://vitejs.dev/)
   [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.4-cyan)](https://tailwindcss.com/)
   
+  ---
+  
+  [![Ko-fi](https://img.shields.io/badge/Support%20me%20on-Ko--fi-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/kevinweitgenant)
+  
 </div>
 
 ---
