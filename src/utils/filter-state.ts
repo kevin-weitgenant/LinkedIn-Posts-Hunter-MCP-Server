@@ -8,6 +8,7 @@ import { getDataDirectory } from './paths.js';
 export interface FilterState {
   keywordFilter: string;
   appliedFilter: 'all' | 'applied' | 'not-applied';
+  savedFilter: 'all' | 'saved' | 'not-saved';
   startDate: string | null; // ISO date string
   endDate: string | null;   // ISO date string
   idFilter: string;
@@ -19,6 +20,7 @@ export interface FilterState {
 const DEFAULT_FILTER_STATE: FilterState = {
   keywordFilter: '',
   appliedFilter: 'all',
+  savedFilter: 'all',
   startDate: null,
   endDate: null,
   idFilter: ''
@@ -72,6 +74,11 @@ export function updateFilterState(updates: Partial<FilterState>): FilterState {
   // Validate appliedFilter enum
   if (updates.appliedFilter && !['all', 'applied', 'not-applied'].includes(updates.appliedFilter)) {
     throw new Error(`Invalid appliedFilter value: ${updates.appliedFilter}`);
+  }
+  
+  // Validate savedFilter enum
+  if (updates.savedFilter && !['all', 'saved', 'not-saved'].includes(updates.savedFilter)) {
+    throw new Error(`Invalid savedFilter value: ${updates.savedFilter}`);
   }
   
   // Write to disk

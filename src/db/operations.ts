@@ -1,4 +1,4 @@
-import { getDatabase } from './database.js';
+import { getDatabase, saveDatabase } from './database.js';
 
 export interface DbPost {
   id: number;
@@ -7,6 +7,7 @@ export interface DbPost {
   description: string;
   search_date: string;
   applied: number; // SQLite stores as INTEGER (0 or 1), convert to boolean in code
+  saved: number; // SQLite stores as INTEGER (0 or 1), convert to boolean in code
   profile_image: string;
   author_name: string;
   author_occupation: string;
@@ -19,7 +20,7 @@ export interface DbPost {
  * Insert a single post into database
  * Returns the inserted post's ID, or null if duplicate (UNIQUE constraint on post_link)
  */
-export function insertPost(
+export async function insertPost(
   keywords: string,
   link: string,
   description: string,
@@ -30,33 +31,42 @@ export function insertPost(
   authorOccupation: string = '',
   postDate: string = '',
   likeCount: string = '',
-  commentCount: string = ''
-): number | null {
-  const db = getDatabase();
+  commentCount: string = '',
+  saved: boolean = false
+): Promise<number | null> {
+  const db = await getDatabase();
   
   try {
-    const stmt = db.prepare(`
-      INSERT INTO posts (search_keywords, post_link, description, search_date, applied, profile_image, author_name, author_occupation, post_date, like_count, comment_count)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    
-    const result = stmt.run(
-      keywords, 
-      link, 
-      description, 
-      searchDate, 
-      applied ? 1 : 0,
-      profileImage,
-      authorName,
-      authorOccupation,
-      postDate,
-      likeCount,
-      commentCount
+    db.run(
+      `INSERT INTO posts (search_keywords, post_link, description, search_date, applied, saved, profile_image, author_name, author_occupation, post_date, like_count, comment_count)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        keywords, 
+        link, 
+        description, 
+        searchDate, 
+        applied ? 1 : 0,
+        saved ? 1 : 0,
+        profileImage,
+        authorName,
+        authorOccupation,
+        postDate,
+        likeCount,
+        commentCount
+      ]
     );
-    return result.lastInsertRowid as number;
+    
+    // Get the last inserted row ID
+    const result = db.exec('SELECT last_insert_rowid() as id');
+    saveDatabase();
+    
+    if (result.length > 0 && result[0].values.length > 0) {
+      return result[0].values[0][0] as number;
+    }
+    return null;
   } catch (error: any) {
-    // SQLITE_CONSTRAINT_UNIQUE means duplicate post_link
-    if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+    // UNIQUE constraint violation
+    if (error.message && error.message.includes('UNIQUE constraint failed')) {
       return null;
     }
     throw error;
@@ -66,85 +76,115 @@ export function insertPost(
 /**
  * Get all posts from database, ordered by date (newest first)
  */
-export function getAllPosts(): DbPost[] {
-  const db = getDatabase();
-  const stmt = db.prepare('SELECT * FROM posts ORDER BY search_date DESC');
-  return stmt.all() as DbPost[];
+export async function getAllPosts(): Promise<DbPost[]> {
+  const db = await getDatabase();
+  const result = db.exec('SELECT * FROM posts ORDER BY search_date DESC');
+  
+  if (result.length === 0) {
+    return [];
+  }
+  
+  return resultToObjects(result[0]) as DbPost[];
 }
 
 /**
  * Count total posts in database
  */
-export function countPosts(): number {
-  const db = getDatabase();
-  const result = db.prepare('SELECT COUNT(*) as count FROM posts').get() as { count: number };
-  return result.count;
+export async function countPosts(): Promise<number> {
+  const db = await getDatabase();
+  const result = db.exec('SELECT COUNT(*) as count FROM posts');
+  
+  if (result.length > 0 && result[0].values.length > 0) {
+    return result[0].values[0][0] as number;
+  }
+  return 0;
 }
 
 /**
  * Check if a post link already exists in database
  */
-export function postExists(link: string): boolean {
-  const db = getDatabase();
-  const result = db.prepare('SELECT 1 FROM posts WHERE post_link = ?').get(link);
-  return result !== undefined;
+export async function postExists(link: string): Promise<boolean> {
+  const db = await getDatabase();
+  const result = db.exec('SELECT 1 FROM posts WHERE post_link = ?', [link]);
+  return result.length > 0 && result[0].values.length > 0;
 }
 
 /**
  * Delete a post by ID
  * Returns true if deleted, false if not found
  */
-export function deletePostById(id: number): boolean {
-  const db = getDatabase();
-  const stmt = db.prepare('DELETE FROM posts WHERE id = ?');
-  const result = stmt.run(id);
-  return result.changes > 0;
+export async function deletePostById(id: number): Promise<boolean> {
+  const db = await getDatabase();
+  
+  // Check if exists first
+  const checkResult = db.exec('SELECT 1 FROM posts WHERE id = ?', [id]);
+  const exists = checkResult.length > 0 && checkResult[0].values.length > 0;
+  
+  if (!exists) {
+    return false;
+  }
+  
+  db.run('DELETE FROM posts WHERE id = ?', [id]);
+  saveDatabase();
+  return true;
 }
 
 /**
  * Update an existing post's fields
  * Returns true if updated, false if not found
  */
-export function updatePost(post: DbPost): boolean {
-  const db = getDatabase();
-  const stmt = db.prepare(`
-    UPDATE posts 
-    SET search_keywords = ?,
-        description = ?,
-        applied = ?
-    WHERE id = ?
-  `);
-  const result = stmt.run(
-    post.search_keywords,
-    post.description,
-    post.applied,
-    post.id
+export async function updatePost(post: DbPost): Promise<boolean> {
+  const db = await getDatabase();
+  
+  // Check if exists first
+  const checkResult = db.exec('SELECT 1 FROM posts WHERE id = ?', [post.id]);
+  const exists = checkResult.length > 0 && checkResult[0].values.length > 0;
+  
+  if (!exists) {
+    return false;
+  }
+  
+  db.run(
+    `UPDATE posts 
+     SET search_keywords = ?,
+         description = ?,
+         applied = ?
+     WHERE id = ?`,
+    [post.search_keywords, post.description, post.applied, post.id]
   );
-  return result.changes > 0;
+  
+  saveDatabase();
+  return true;
 }
 
 /**
  * Get a single post by ID
  */
-export function getPostById(id: number): DbPost | null {
-  const db = getDatabase();
-  const stmt = db.prepare('SELECT * FROM posts WHERE id = ?');
-  const result = stmt.get(id);
-  return result ? (result as DbPost) : null;
+export async function getPostById(id: number): Promise<DbPost | null> {
+  const db = await getDatabase();
+  const result = db.exec('SELECT * FROM posts WHERE id = ?', [id]);
+  
+  if (result.length === 0 || result[0].values.length === 0) {
+    return null;
+  }
+  
+  const posts = resultToObjects(result[0]) as DbPost[];
+  return posts[0] || null;
 }
 
 /**
- * Query posts with filters - supports search_text, date range, IDs, limit, applied status
+ * Query posts with filters - supports search_text, date range, IDs, limit, applied status, saved status
  */
-export function queryPosts(params: {
+export async function queryPosts(params: {
   ids?: number[];
   search_text?: string;
   date_from?: string;
   date_to?: string;
   limit?: number;
   applied?: boolean;
-}): DbPost[] {
-  const db = getDatabase();
+  saved?: boolean;
+}): Promise<DbPost[]> {
+  const db = await getDatabase();
   
   let sql = 'SELECT * FROM posts WHERE 1=1';
   const bindings: any[] = [];
@@ -180,6 +220,12 @@ export function queryPosts(params: {
     bindings.push(params.applied ? 1 : 0);
   }
   
+  // Filter by saved status
+  if (params.saved !== undefined) {
+    sql += ` AND saved = ?`;
+    bindings.push(params.saved ? 1 : 0);
+  }
+  
   // Order by date (newest first)
   sql += ' ORDER BY search_date DESC';
   
@@ -189,22 +235,28 @@ export function queryPosts(params: {
     bindings.push(params.limit);
   }
   
-  const stmt = db.prepare(sql);
-  return stmt.all(...bindings) as DbPost[];
+  const result = db.exec(sql, bindings);
+  
+  if (result.length === 0) {
+    return [];
+  }
+  
+  return resultToObjects(result[0]) as DbPost[];
 }
 
 /**
  * Update multiple posts with new values
  */
-export function updatePostsBulk(
+export async function updatePostsBulk(
   postIds: number[],
   updates: {
     new_description?: string;
     new_keywords?: string;
     new_applied?: boolean;
+    new_saved?: boolean;
   }
-): number {
-  const db = getDatabase();
+): Promise<number> {
+  const db = await getDatabase();
   
   let sql = 'UPDATE posts SET ';
   const setClauses: string[] = [];
@@ -225,6 +277,11 @@ export function updatePostsBulk(
     bindings.push(updates.new_applied ? 1 : 0);
   }
   
+  if (updates.new_saved !== undefined) {
+    setClauses.push('saved = ?');
+    bindings.push(updates.new_saved ? 1 : 0);
+  }
+  
   if (setClauses.length === 0) {
     return 0; // Nothing to update
   }
@@ -233,56 +290,132 @@ export function updatePostsBulk(
   sql += ' WHERE id IN (' + postIds.map(() => '?').join(',') + ')';
   bindings.push(...postIds);
   
-  const stmt = db.prepare(sql);
-  const result = stmt.run(...bindings);
-  return result.changes;
+  // Get count before update
+  const countBefore = db.exec(
+    'SELECT COUNT(*) FROM posts WHERE id IN (' + postIds.map(() => '?').join(',') + ')',
+    postIds
+  );
+  
+  db.run(sql, bindings);
+  saveDatabase();
+  
+  if (countBefore.length > 0 && countBefore[0].values.length > 0) {
+    return countBefore[0].values[0][0] as number;
+  }
+  
+  return 0;
 }
 
 /**
  * Delete multiple posts by IDs
  */
-export function deletePostsBulk(postIds: number[]): number {
-  const db = getDatabase();
+export async function deletePostsBulk(postIds: number[]): Promise<number> {
+  const db = await getDatabase();
   
   if (postIds.length === 0) {
     return 0;
   }
   
+  // Get count before delete
   const placeholders = postIds.map(() => '?').join(',');
-  const sql = `DELETE FROM posts WHERE id IN (${placeholders})`;
+  const countBefore = db.exec(
+    `SELECT COUNT(*) FROM posts WHERE id IN (${placeholders})`,
+    postIds
+  );
   
-  const stmt = db.prepare(sql);
-  const result = stmt.run(...postIds);
-  return result.changes;
+  db.run(`DELETE FROM posts WHERE id IN (${placeholders})`, postIds);
+  saveDatabase();
+  
+  if (countBefore.length > 0 && countBefore[0].values.length > 0) {
+    return countBefore[0].values[0][0] as number;
+  }
+  
+  return 0;
 }
 
 /**
  * Update applied status for a specific post
  * Returns true if updated, false if not found
  */
-export function updateAppliedStatus(id: number, applied: boolean): boolean {
-  const db = getDatabase();
-  const stmt = db.prepare('UPDATE posts SET applied = ? WHERE id = ?');
-  const result = stmt.run(applied ? 1 : 0, id);
-  return result.changes > 0;
+export async function updateAppliedStatus(id: number, applied: boolean): Promise<boolean> {
+  const db = await getDatabase();
+  
+  // Check if exists first
+  const checkResult = db.exec('SELECT 1 FROM posts WHERE id = ?', [id]);
+  const exists = checkResult.length > 0 && checkResult[0].values.length > 0;
+  
+  if (!exists) {
+    return false;
+  }
+  
+  db.run('UPDATE posts SET applied = ? WHERE id = ?', [applied ? 1 : 0, id]);
+  saveDatabase();
+  return true;
 }
 
 /**
  * Toggle applied status for a specific post
  * Returns the new applied status, or null if post not found
  */
-export function toggleAppliedStatus(id: number): boolean | null {
-  const db = getDatabase();
-  
-  // Get current status
-  const post = getPostById(id);
+export async function toggleAppliedStatus(id: number): Promise<boolean | null> {
+  const post = await getPostById(id);
   if (!post) {
     return null;
   }
   
   // Toggle it
   const newStatus = post.applied === 0;
-  updateAppliedStatus(id, newStatus);
+  await updateAppliedStatus(id, newStatus);
   
   return newStatus;
+}
+
+/**
+ * Update saved status for a specific post
+ * Returns true if updated, false if not found
+ */
+export async function updateSavedStatus(id: number, saved: boolean): Promise<boolean> {
+  const db = await getDatabase();
+  
+  // Check if exists first
+  const checkResult = db.exec('SELECT 1 FROM posts WHERE id = ?', [id]);
+  const exists = checkResult.length > 0 && checkResult[0].values.length > 0;
+  
+  if (!exists) {
+    return false;
+  }
+  
+  db.run('UPDATE posts SET saved = ? WHERE id = ?', [saved ? 1 : 0, id]);
+  saveDatabase();
+  return true;
+}
+
+/**
+ * Toggle saved status for a specific post
+ * Returns the new saved status, or null if post not found
+ */
+export async function toggleSavedStatus(id: number): Promise<boolean | null> {
+  const post = await getPostById(id);
+  if (!post) {
+    return null;
+  }
+  
+  // Toggle it
+  const newStatus = post.saved === 0;
+  await updateSavedStatus(id, newStatus);
+  
+  return newStatus;
+}
+
+/**
+ * Helper function to convert sql.js QueryExecResult to array of objects
+ */
+function resultToObjects(result: { columns: string[], values: any[][] }): any[] {
+  return result.values.map(row => {
+    const obj: any = {};
+    result.columns.forEach((col, index) => {
+      obj[col] = row[index];
+    });
+    return obj;
+  });
 }

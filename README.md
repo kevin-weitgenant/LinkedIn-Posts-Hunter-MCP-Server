@@ -380,6 +380,11 @@ The built-in web viewer (`start_vite_viewer`) provides:
 ### Client won't build
 - Ensure client dependencies are installed: `cd src/client-vite && npm install`
 
+### Database errors with .mcpb (Node.js version mismatch)
+- **Fixed in v1.0.0+**: Now uses sql.js (pure JavaScript) instead of better-sqlite3
+- No native module compilation needed - works across all Node.js versions
+- If you installed an older version, reinstall the latest .mcpb package
+
 ---
 
 ## 📄 License
@@ -400,7 +405,7 @@ Built with:
 - [Model Context Protocol](https://modelcontextprotocol.io) by Anthropic
 - [Playwright](https://playwright.dev) for browser automation
 - [React](https://react.dev) + [Vite](https://vitejs.dev) for the UI
-- [SQLite](https://www.sqlite.org) via better-sqlite3
+- [SQLite](https://www.sqlite.org) via sql.js (pure JavaScript, no native dependencies)
 
 ---
 

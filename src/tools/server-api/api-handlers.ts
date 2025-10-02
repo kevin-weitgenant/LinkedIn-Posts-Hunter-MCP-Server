@@ -6,7 +6,8 @@ import {
   deletePostById, 
   updatePost, 
   getPostById, 
-  updateAppliedStatus 
+  updateAppliedStatus,
+  updateSavedStatus 
 } from '../../db/operations.js';
 import { getScreenshotsPath } from '../../utils/paths.js';
 import { 
@@ -20,9 +21,9 @@ import type { DbPost } from '../../db/operations.js';
 /**
  * GET /api/posts - Get all posts from database
  */
-export function handleGetAllPosts(req: Request, res: Response): void {
+export async function handleGetAllPosts(req: Request, res: Response): Promise<void> {
   try {
-    const posts = getAllPosts();
+    const posts = await getAllPosts();
     res.json(posts);
   } catch (error) {
     res.status(500).json({ error: 'Failed to load posts from database' });
@@ -32,7 +33,7 @@ export function handleGetAllPosts(req: Request, res: Response): void {
 /**
  * GET /api/posts/:id - Get single post by ID
  */
-export function handleGetSinglePost(req: Request, res: Response): void {
+export async function handleGetSinglePost(req: Request, res: Response): Promise<void> {
   try {
     const id = parseInt(req.params.id);
     
@@ -41,7 +42,7 @@ export function handleGetSinglePost(req: Request, res: Response): void {
       return;
     }
     
-    const post = getPostById(id);
+    const post = await getPostById(id);
     
     if (!post) {
       res.status(404).json({ error: 'Post not found' });
@@ -57,13 +58,13 @@ export function handleGetSinglePost(req: Request, res: Response): void {
 /**
  * POST /api/posts/bulk-update - Update multiple posts
  */
-export function handleBulkUpdatePosts(req: Request, res: Response): void {
+export async function handleBulkUpdatePosts(req: Request, res: Response): Promise<void> {
   try {
     const posts: DbPost[] = req.body;
     
     let updatedCount = 0;
     for (const post of posts) {
-      if (updatePost(post)) {
+      if (await updatePost(post)) {
         updatedCount++;
       }
     }
@@ -81,7 +82,7 @@ export function handleBulkUpdatePosts(req: Request, res: Response): void {
 /**
  * DELETE /api/posts/:id - Delete a post by ID
  */
-export function handleDeletePost(req: Request, res: Response): void {
+export async function handleDeletePost(req: Request, res: Response): Promise<void> {
   try {
     const id = parseInt(req.params.id);
     
@@ -90,7 +91,7 @@ export function handleDeletePost(req: Request, res: Response): void {
       return;
     }
     
-    const deleted = deletePostById(id);
+    const deleted = await deletePostById(id);
     
     if (deleted) {
       res.json({ message: 'Post deleted successfully' });
@@ -105,7 +106,7 @@ export function handleDeletePost(req: Request, res: Response): void {
 /**
  * PATCH /api/posts/:id/applied - Update applied status for a post
  */
-export function handleUpdateAppliedStatus(req: Request, res: Response): void {
+export async function handleUpdateAppliedStatus(req: Request, res: Response): Promise<void> {
   try {
     const id = parseInt(req.params.id);
     
@@ -121,7 +122,7 @@ export function handleUpdateAppliedStatus(req: Request, res: Response): void {
       return;
     }
     
-    const updated = updateAppliedStatus(id, applied);
+    const updated = await updateAppliedStatus(id, applied);
     
     if (updated) {
       res.json({ 
@@ -209,6 +210,41 @@ export function handleResetFilterState(req: Request, res: Response): void {
     res.json(defaultState);
   } catch (error) {
     res.status(500).json({ error: 'Failed to reset filter state' });
+  }
+}
+
+/**
+ * PATCH /api/posts/:id/saved - Update saved status for a post
+ */
+export async function handleUpdateSavedStatus(req: Request, res: Response): Promise<void> {
+  try {
+    const id = parseInt(req.params.id);
+    
+    if (isNaN(id)) {
+      res.status(400).json({ error: 'Invalid post ID' });
+      return;
+    }
+    
+    const { saved } = req.body;
+    
+    if (saved === undefined) {
+      res.status(400).json({ error: 'Missing saved status in request body' });
+      return;
+    }
+    
+    const updated = await updateSavedStatus(id, saved);
+    
+    if (updated) {
+      res.json({ 
+        success: true, 
+        saved,
+        message: `Post marked as ${saved ? 'saved' : 'not saved'}`
+      });
+    } else {
+      res.status(404).json({ error: 'Post not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update saved status' });
   }
 }
 

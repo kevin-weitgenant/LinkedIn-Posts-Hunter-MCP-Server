@@ -6,6 +6,7 @@ export interface Post {
   description: string
   search_date: string
   applied: number // 0 or 1 (SQLite boolean)
+  saved: number // 0 or 1 (SQLite boolean)
   profile_image: string
   author_name: string
   author_occupation: string

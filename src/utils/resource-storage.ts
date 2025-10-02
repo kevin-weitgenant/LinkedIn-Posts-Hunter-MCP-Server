@@ -29,7 +29,7 @@ export const saveSearchResourceToDb = async (
   
   // Try to insert each post
   for (const post of results) {
-    const id = insertPost(
+    const id = await insertPost(
       keywords,
       post.link,
       post.description,
@@ -51,7 +51,7 @@ export const saveSearchResourceToDb = async (
     }
   }
   
-  const totalPosts = countPosts();
+  const totalPosts = await countPosts();
   
   return {
     totalPosts,

@@ -3,6 +3,7 @@ import { Post } from '../types'
 interface LinkedInPostCardProps {
   post: Post
   onToggleApplied: (post: Post) => void
+  onToggleSaved: (post: Post) => void
   onDelete: (post: Post) => void
   onGoToPost: (post: Post) => void
   isLoading?: boolean
@@ -11,6 +12,7 @@ interface LinkedInPostCardProps {
 export function LinkedInPostCard({
   post,
   onToggleApplied,
+  onToggleSaved,
   onDelete,
   onGoToPost,
   isLoading = false
@@ -236,6 +238,26 @@ export function LinkedInPostCard({
               ) : (
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 16 16">
                   <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                </svg>
+              )}
+            </button>
+            <button
+              onClick={() => onToggleSaved(post)}
+              className={`p-1.5 rounded-full transition-colors disabled:opacity-50 ${
+                post.saved
+                  ? 'text-yellow-600 hover:bg-yellow-50'
+                  : 'text-slate-400 hover:bg-slate-100'
+              }`}
+              disabled={isLoading}
+              title={post.saved ? 'Remove from Saved' : 'Save Post'}
+            >
+              {post.saved ? (
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2z"/>
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2zm2-1a1 1 0 0 0-1 1v12.566l4.723-2.482a.5.5 0 0 1 .554 0L13 14.566V2a1 1 0 0 0-1-1H4z"/>
                 </svg>
               )}
             </button>

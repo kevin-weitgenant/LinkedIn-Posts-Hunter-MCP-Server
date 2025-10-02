@@ -1,12 +1,14 @@
 import React from 'react'
 import DatePicker from 'react-datepicker'
-import { AppliedFilterType } from '../App'
+import { AppliedFilterType, SavedFilterType } from '../App'
 
 interface FilterViewProps {
   keywordFilter: string
   setKeywordFilter: (value: string) => void
   appliedFilter: AppliedFilterType
   setAppliedFilter: (value: AppliedFilterType) => void
+  savedFilter: SavedFilterType
+  setSavedFilter: (value: SavedFilterType) => void
   uniqueKeywords: string[]
   startDate: Date | null
   setStartDate: (value: Date | null) => void
@@ -21,6 +23,8 @@ export const FilterView: React.FC<FilterViewProps> = ({
   setKeywordFilter,
   appliedFilter,
   setAppliedFilter,
+  savedFilter,
+  setSavedFilter,
   uniqueKeywords,
   startDate,
   setStartDate,
@@ -37,7 +41,7 @@ export const FilterView: React.FC<FilterViewProps> = ({
       <div className="max-w-7xl mx-auto">
         <div className="bg-white p-4 rounded-lg shadow-sm">
           <h3 className="text-lg font-medium text-slate-800 mb-4">Filters</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
             {/* Keyword Filter */}
             <div className="filter-item">
               <label
@@ -67,7 +71,7 @@ export const FilterView: React.FC<FilterViewProps> = ({
                 htmlFor="applied-filter"
                 className="block text-sm font-medium text-slate-700 mb-1"
               >
-                Status:
+                Applied:
               </label>
               <select
                 id="applied-filter"
@@ -80,6 +84,28 @@ export const FilterView: React.FC<FilterViewProps> = ({
                 <option value="all">All</option>
                 <option value="applied">Applied</option>
                 <option value="not-applied">Not Applied</option>
+              </select>
+            </div>
+
+            {/* Saved Status Filter */}
+            <div className="filter-item">
+              <label
+                htmlFor="saved-filter"
+                className="block text-sm font-medium text-slate-700 mb-1"
+              >
+                Saved:
+              </label>
+              <select
+                id="saved-filter"
+                value={savedFilter}
+                onChange={e =>
+                  setSavedFilter(e.target.value as SavedFilterType)
+                }
+                className="w-full bg-white border border-slate-300 rounded-md shadow-sm py-2 px-3 text-sm text-slate-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="all">All</option>
+                <option value="saved">Saved</option>
+                <option value="not-saved">Not Saved</option>
               </select>
             </div>
 

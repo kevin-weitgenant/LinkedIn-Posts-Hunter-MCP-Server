@@ -5,6 +5,7 @@ import {
   handleBulkUpdatePosts,
   handleDeletePost,
   handleUpdateAppliedStatus,
+  handleUpdateSavedStatus,
   handleGetScreenshot,
   handleGetFilterState,
   handleUpdateFilterState,
@@ -23,6 +24,7 @@ export function createApiRouter(): Router {
   router.post('/posts/bulk-update', handleBulkUpdatePosts);
   router.delete('/posts/:id', handleDeletePost);
   router.patch('/posts/:id/applied', handleUpdateAppliedStatus);
+  router.patch('/posts/:id/saved', handleUpdateSavedStatus);
   
   // Screenshot routes
   router.get('/screenshots/:filename', handleGetScreenshot);

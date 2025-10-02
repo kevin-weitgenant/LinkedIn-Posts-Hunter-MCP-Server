@@ -7,10 +7,12 @@ import { LinkedInPostCard } from './components/LinkedInPostCard'
 
 type TabType = 'posts' | 'db'
 export type AppliedFilterType = 'all' | 'applied' | 'not-applied'
+export type SavedFilterType = 'all' | 'saved' | 'not-saved'
 
 interface FilterState {
   keywordFilter: string
   appliedFilter: AppliedFilterType
+  savedFilter: SavedFilterType
   startDate: string | null
   endDate: string | null
   idFilter: string
@@ -24,6 +26,8 @@ function App() {
   const [keywordFilter, setKeywordFilter] = useState('')
   const [appliedFilter, setAppliedFilter] =
     useState<AppliedFilterType>('all')
+  const [savedFilter, setSavedFilter] =
+    useState<SavedFilterType>('all')
   const [startDate, setStartDate] = useState<Date | null>(null)
   const [endDate, setEndDate] = useState<Date | null>(null)
   const [idFilter, setIdFilter] = useState('')
@@ -57,6 +61,34 @@ function App() {
 
       // Update local state instead of full refresh
       onPostUpdate({ id: post.id, applied: newAppliedStatus ? 1 : 0 })
+    } catch (error) {
+      setCardErrorMessage(
+        error instanceof Error ? error.message : 'Unknown error occurred'
+      )
+    } finally {
+      setLoadingPost(post.id, false)
+    }
+  }
+
+  const handleToggleSaved = async (post: Post) => {
+    setLoadingPost(post.id, true)
+    setCardErrorMessage(null)
+
+    try {
+      const newSavedStatus = !post.saved
+      const response = await fetch(`/api/posts/${post.id}/saved`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ saved: newSavedStatus }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to update saved status')
+      }
+
+      // Update local state instead of full refresh
+      onPostUpdate({ id: post.id, saved: newSavedStatus ? 1 : 0 })
     } catch (error) {
       setCardErrorMessage(
         error instanceof Error ? error.message : 'Unknown error occurred'
@@ -164,6 +196,7 @@ function App() {
         // Update React state with fetched values
         setKeywordFilter(state.keywordFilter)
         setAppliedFilter(state.appliedFilter)
+        setSavedFilter(state.savedFilter)
         setStartDate(state.startDate ? new Date(state.startDate) : null)
         setEndDate(state.endDate ? new Date(state.endDate) : null)
         setIdFilter(state.idFilter)
@@ -224,6 +257,11 @@ function App() {
     syncFilterStateToAPI({ appliedFilter: value })
   }, [syncFilterStateToAPI])
 
+  const setSavedFilterAndSync = useCallback((value: SavedFilterType) => {
+    setSavedFilter(value)
+    syncFilterStateToAPI({ savedFilter: value })
+  }, [syncFilterStateToAPI])
+
   const setStartDateAndSync = useCallback((value: Date | null) => {
     setStartDate(value)
     syncFilterStateToAPI({ startDate: value ? value.toISOString().split('T')[0] : null })
@@ -255,6 +293,12 @@ function App() {
       (appliedFilter === 'applied' && post.applied === 1) ||
       (appliedFilter === 'not-applied' && post.applied === 0)
 
+    // Saved status filter
+    const savedMatch =
+      savedFilter === 'all' ||
+      (savedFilter === 'saved' && post.saved === 1) ||
+      (savedFilter === 'not-saved' && post.saved === 0)
+
     // Date range filter
     const postDate = new Date(post.search_date)
     const start = startDate // No need to create new Date object
@@ -282,7 +326,7 @@ function App() {
       return ids.includes(post.id)
     })()
 
-    return keywordMatch && appliedMatch && dateMatch && idMatch
+    return keywordMatch && appliedMatch && savedMatch && dateMatch && idMatch
   })
 
   return (
@@ -296,7 +340,7 @@ function App() {
               className="w-8 h-8 object-contain"
             />
             <h1 className="text-4xl font-bold text-slate-800">
-              LinkedIn Posts Viewer
+              LinkedIn Posts Manager
             </h1>
           </div>
           <p className="text-slate-500 mt-2">
@@ -346,6 +390,8 @@ function App() {
               setKeywordFilter={setKeywordFilterAndSync}
               appliedFilter={appliedFilter}
               setAppliedFilter={setAppliedFilterAndSync}
+              savedFilter={savedFilter}
+              setSavedFilter={setSavedFilterAndSync}
               uniqueKeywords={uniqueKeywords}
               startDate={startDate}
               setStartDate={setStartDateAndSync}
@@ -400,6 +446,7 @@ function App() {
                           key={post.id}
                           post={post}
                           onToggleApplied={handleToggleApplied}
+                          onToggleSaved={handleToggleSaved}
                           onDelete={handleDelete}
                           onGoToPost={p =>
                             window.open(
