@@ -1,6 +1,6 @@
 {
   "name": "linkedin-posts-hunter-mcp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "LinkedIn MCP server with Playwright automation for authentication and post searching",
   "main": "build/index.js",
   "type": "module",

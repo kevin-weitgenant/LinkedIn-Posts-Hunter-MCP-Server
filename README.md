@@ -157,35 +157,54 @@ Stop the running Vite development server.
 ### Prerequisites
 
 - **Node.js** 18 or higher
-- **npm** (for Method 1)
+- **npm** (comes with Node.js)
 - A LinkedIn account
 - **Cursor IDE** or **Claude Desktop**
 
 ---
 
-### Method 1: Global npm Install (Recommended) ⭐
+### Method 1: Download Pre-built .mcpb Package (Claude Desktop Only) 🎁
+
+**Works for:** Claude Desktop only
+
+**💡 Easiest method!** This is the simplest installation option - just one click! However, the `.mcpb` format is still relatively new and not yet widely adopted by the MCP community.
+
+1. **Download the latest `.mcpb` file** from the [Releases page](https://github.com/kevin-weitgenant/LinkedIn-Posts-Hunter-MCP-Server/releases)
+
+2. **Install with one click:**
+   - Double-click the `.mcpb` file, or
+   - Drag it onto the Claude Desktop app
+
+3. **Done!** Claude Desktop automatically configures everything for you.
+
+---
+
+### Method 2: Using mcp.json Configuration (Recommended) ⭐
 
 **Works for:** Cursor IDE and Claude Desktop
 
-The easiest way to install is via npm:
+This is the most reliable and widely-supported installation method.
 
 1. **Install globally:**
    ```bash
    npm install -g linkedin-posts-hunter-mcp
    ```
 
-   This will:
-   - Install the package globally
-   - Create the `linkedin-posts-hunter-mcp` command
-   - Automatically install Playwright Chromium browser
+   **What you'll see:**
+   - Package download progress with visible feedback
+   - Dependency installation (~234 packages)
+   - Playwright Chromium browser download (~300MB)
+   - Installation typically completes in 1-3 minutes
+   
+   ✅ You'll know exactly when the installation is complete!
 
 2. **Add to your MCP configuration:**
 
    **For Cursor IDE:**
    
    Open or create `mcp.json` at:
-   - **macOS/Linux:** `~/Library/Application Support/Cursor/User/globalStorage/mcp.json`
-   - **Windows:** `%APPDATA%\Cursor\User\globalStorage\mcp.json`
+   - **macOS/Linux:** `~/.cursor/mcp.json`
+   - **Windows:** `%USERPROFILE%\.cursor\mcp.json` (typically `C:\Users\YourName\.cursor\mcp.json`)
    
    Add this configuration:
    ```json
@@ -218,22 +237,6 @@ The easiest way to install is via npm:
 3. **Restart your MCP client** (Cursor or Claude Desktop)
 
 That's it! No need to clone the repository or manage local builds.
-
----
-
-### Method 2: Download Pre-built .mcpb Package (Claude Desktop Only) 🎁
-
-**Works for:** Claude Desktop only
-
-Perfect if you want a one-click installation without npm:
-
-1. **Download the latest `.mcpb` file** from the [Releases page](https://github.com/kevin-weitgenant/LinkedIn-Posts-Hunter-MCP-Server/releases)
-
-2. **Install with one click:**
-   - Double-click the `.mcpb` file, or
-   - Drag it onto the Claude Desktop app
-
-3. **Done!** Claude Desktop automatically configures everything for you.
 
 ---
 
