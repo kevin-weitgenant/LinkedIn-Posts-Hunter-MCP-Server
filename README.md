@@ -25,6 +25,8 @@
 
 **LinkedIn Posts Hunter MCP** is a Model Context Protocol (MCP) server that provides tools for automating LinkedIn job post search and management through your AI assistant (Claude Desktop, Cursor, or other MCP-compatible clients).
 
+**Why LinkedIn Posts?** Job opportunities often appear in LinkedIn posts first, before they're posted on traditional job boards. By monitoring LinkedIn posts, you can discover opportunities earlier and get a competitive advantage in your job search.
+
 ### How it works:
 
 **1. Authentication & Scraping**
@@ -48,13 +50,22 @@
 - The React app updates via **polling**, so changes made through MCP commands are reflected in the UI
 - This gives you flexibility: use natural language commands with your AI assistant, or point-and-click in the dashboard
 
+---
 
+## 🎬 Video Demo
+
+See LinkedIn Posts Hunter in action! Watch how to search, manage, and track LinkedIn job posts through your AI assistant.
+
+[![Watch Demo](https://img.youtube.com/vi/VIDEO_ID/maxresdefault.jpg)](https://youtube.com/watch?v=VIDEO_ID)
+*Click to watch the full demo video*
+
+---
 
 ### 🎨 Diagram
 
 <div align="center">
   <img src="diagram.png" alt="LinkedIn MCP Architecture Diagram" width="800"/>
-  <p><em>Complete system architecture showing all components and their interactions</em></p>
+  <p><em>System architecture showing components and their interactions</em></p>
 </div>
 
 ---
@@ -323,16 +334,22 @@ For developers who want to modify the code or contribute:
    AI: Searches LinkedIn, extracts post details, saves to database
    ```
 
-3. **Review results:**
-   ```
-   User: "Show me the last 10 posts I found"
-   AI: Displays posts with links, descriptions, and metadata
-   ```
-
-4. **Visual exploration:**
+3. **Visual exploration:**
    ```
    User: "Open the post viewer"
    AI: Launches React dashboard at http://localhost:5174
+   ```
+
+4. **Filter and manage:**
+   ```
+   User: "Remove posts that aren't about job opportunities"
+   AI: Reads database, filters and displays only job-related posts
+   
+   User: "Show only senior-level positions" 
+   AI: Queries database for posts containing "senior", "lead", "principal"
+   
+   User: "Show posts about React or Vue.js positions"
+   AI: Searches database and displays matching posts
    ```
 
 5. **Track applications:**
@@ -341,45 +358,37 @@ For developers who want to modify the code or contribute:
    AI: Updates the database and confirms
    ```
 
-6. **Filter and manage:**
-   ```
-   User: "Show only posts from this month that I haven't applied to yet"
-   AI: Filters and displays matching posts
-   ```
 
-### Additional Use Cases
 
-- **Bulk operations**: "Delete all posts older than 3 months"
-- **Analytics**: "How many posts did I save this week?"
-- **Smart filtering**: "Show posts with 'React' or 'Vue' that have over 50 likes"
-- **Export ready**: Database is SQLite, easily query with SQL tools
+
 
 ---
 
-## 🗄️ Database Schema
+## 📁 Data Storage Locations
 
-Posts are stored in a SQLite database (`linkedin.db`) with the following schema:
+All your LinkedIn data is stored locally on your computer in the following directories:
 
-```sql
-CREATE TABLE posts (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  search_keywords TEXT NOT NULL,
-  post_link TEXT UNIQUE NOT NULL,
-  description TEXT NOT NULL,
-  search_date TEXT NOT NULL,
-  applied INTEGER DEFAULT 0,
-  profile_image TEXT DEFAULT '',
-  author_name TEXT DEFAULT '',
-  author_occupation TEXT DEFAULT '',
-  post_date TEXT DEFAULT '',
-  like_count TEXT DEFAULT '',
-  comment_count TEXT DEFAULT ''
-);
-```
+### **Windows**
+- **Main data directory:** `%APPDATA%\linkedin-mcp\`
 
-Indexes are created on `post_link`, `search_date`, and `applied` for fast queries.
+
+### **macOS/Linux**
+- **Main data directory:** `~/.linkedin-mcp/`
+
+### **What's stored:**
+- **`linkedin.db`** - SQLite database containing all scraped posts, metadata, and your tracking data
+- **`auth.json`** - Your LinkedIn session cookies and authentication tokens
+- **`searches/`** - Search session data and temporary files
+
+### **Data Privacy:**
+- ✅ All data stays on your computer
+- ✅ No data is sent to external servers
+- ✅ You can delete the entire `linkedin-mcp` folder to remove all data
+- ✅ Database is standard SQLite format - you can open it with any SQLite browser
 
 ---
+
+
 
 ## 🎨 React Dashboard Features
 
