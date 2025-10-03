@@ -54,6 +54,13 @@
 
 ---
 
+## 📸 Screenshot
+
+<div align="center">
+  <img src="screenshot.png" alt="LinkedIn Posts Hunter Screenshot" width="800"/>
+  <p><em>Example workflow: Cleaning up LinkedIn posts by filtering out non-English content, senior-level positions, and non-job opportunities</em></p>
+</div>
+
 ## 🎬 Video Demo
 
 See LinkedIn Posts Hunter in action! Watch how to search, manage, and track LinkedIn job posts through your AI assistant.
