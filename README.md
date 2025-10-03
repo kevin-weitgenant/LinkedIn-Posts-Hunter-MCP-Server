@@ -54,11 +54,14 @@
 
 ---
 
-## 📸 Screenshot
+## 📸 Screenshots
 
 <div align="center">
   <img src="screenshot.png" alt="LinkedIn Posts Hunter Screenshot" width="800"/>
   <p><em>Example workflow: Cleaning up LinkedIn posts by filtering out non-English content, senior-level positions, and non-job opportunities</em></p>
+  
+  <img src="screenshot2.png" alt="React UI Dashboard" width="800"/>
+  <p><em>React dashboard showing scraped LinkedIn posts with filtering and management capabilities</em></p>
 </div>
 
 ## 🎬 Video Demo
