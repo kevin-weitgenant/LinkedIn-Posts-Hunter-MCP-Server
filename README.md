@@ -146,7 +146,7 @@ Control the React UI filters programmatically from the AI conversation.
 ```
 
 ### 5. `start_viewer`
-Launch the React dashboard in your browser with hot reload enabled.
+Launch the React dashboard in your browser.
 
 **Usage:**
 ```
