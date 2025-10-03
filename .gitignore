@@ -105,6 +105,4 @@ scripts/linkedin_posts.json
 # MCP binary files
 *.mcpb
 
-# Large media files
-demo.mp4
-*.mp4
+
