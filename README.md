@@ -56,7 +56,7 @@
 
 ## 🎬 Video Demo
 
-See LinkedIn Posts Hunter in action! Watch how to search, manage, and track LinkedIn job posts through your AI assistant.
+
 
 <div align="center">
   <video width="800" controls>
@@ -200,15 +200,7 @@ This is the most reliable and widely-supported installation method.
    ```bash
    npm install -g linkedin-posts-hunter-mcp
    ```
-
-   **What you'll see:**
-   - Package download progress with visible feedback
-   - Dependency installation (~234 packages)
-   - Playwright Chromium browser download (~300MB)
-   - Installation typically completes in 1-3 minutes
    
-   ✅ You'll know exactly when the installation is complete!
-
 2. **Add to your MCP configuration:**
 
    **For Cursor IDE:**
