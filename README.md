@@ -44,7 +44,7 @@
 - Changes made in the React app are written to the local database
 
 **4. Dual Control**
-- You can manage posts through **either** the React UI **or** through MCP tools like `linkedin_manage_posts` and `linkedin_set_filters`
+- You can manage posts through **either** the React UI **or** through MCP tools like `manage_posts` and `viewer_filters`
 - The React app updates via **polling**, so changes made through MCP commands are reflected in the UI
 - This gives you flexibility: use natural language commands with your AI assistant, or point-and-click in the dashboard
 
@@ -65,7 +65,7 @@
 
 This MCP server exposes **6 tools** that can be called from your AI assistant:
 
-### 1. `linkedin_auth`
+### 1. `auth`
 Manage LinkedIn authentication with persistent session storage.
 
 **Parameters:**
@@ -79,7 +79,7 @@ Manage LinkedIn authentication with persistent session storage.
 "Clear my LinkedIn credentials"
 ```
 
-### 2. `linkedin_search_posts`
+### 2. `search_posts`
 Search LinkedIn posts by keywords and save results to the database.
 
 **Parameters:**
@@ -92,7 +92,7 @@ Search LinkedIn posts by keywords and save results to the database.
 "Find posts about 'React developer' with 5 pages"
 ```
 
-### 3. `linkedin_manage_posts`
+### 3. `manage_posts`
 Read, update, or delete posts from the database with advanced filtering.
 
 **Parameters:**
@@ -114,7 +114,7 @@ Read, update, or delete posts from the database with advanced filtering.
 "Delete all posts older than January 1st"
 ```
 
-### 4. `linkedin_set_filters`
+### 4. `viewer_filters`
 Control the React UI filters programmatically from the AI conversation.
 
 **Parameters:**
@@ -132,7 +132,7 @@ Control the React UI filters programmatically from the AI conversation.
 "Reset all filters"
 ```
 
-### 5. `start_vite_viewer`
+### 5. `start_viewer`
 Launch the React dashboard in your browser with hot reload enabled.
 
 **Usage:**
@@ -141,7 +141,7 @@ Launch the React dashboard in your browser with hot reload enabled.
 "Start the dashboard"
 ```
 
-### 6. `stop_vite_viewer`
+### 6. `stop_viewer`
 Stop the running Vite development server.
 
 **Usage:**
@@ -383,7 +383,7 @@ Indexes are created on `post_link`, `search_date`, and `applied` for fast querie
 
 ## 🎨 React Dashboard Features
 
-The built-in web viewer (`start_vite_viewer`) provides:
+The built-in web viewer (`start_viewer`) provides:
 
 - **📊 Table View**: Sortable columns with all post metadata
 - **🎴 Card View**: Visual cards with profile images and engagement metrics

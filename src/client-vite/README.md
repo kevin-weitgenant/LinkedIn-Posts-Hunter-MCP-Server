@@ -23,7 +23,7 @@ Proof of concept React + Vite application launched via MCP tool.
 ## Usage
 
 Launch via MCP tool from Claude:
-- Tool name: `start_vite_viewer`
+- Tool name: `start_viewer`
 - The tool will automatically start the Vite dev server and open your browser
 
 ## Features

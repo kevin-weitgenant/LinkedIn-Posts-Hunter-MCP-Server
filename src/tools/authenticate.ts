@@ -88,7 +88,7 @@ async function handleAuthStatus() {
     return {
       content: [{
         type: "text",
-        text: "No LinkedIn authentication found. Run the linkedin_auth tool with action='authenticate' to log in."
+        text: "No LinkedIn authentication found. Run the auth tool with action='authenticate' to log in."
       }]
     };
   }

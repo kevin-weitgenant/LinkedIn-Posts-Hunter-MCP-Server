@@ -32,7 +32,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
       {
-        name: "linkedin_auth",
+        name: "auth",
         description: "Manage LinkedIn authentication: authenticate, check status, or clear credentials",
         inputSchema: {
           type: "object",
@@ -52,7 +52,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
-        name: "linkedin_search_posts",
+        name: "search_posts",
         description: "Search LinkedIn posts with keywords and optional pagination",
         inputSchema: {
           type: "object",
@@ -70,15 +70,15 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             headless: {
               type: "boolean",
-              description: "Run browser in headless mode (default: true). Headless mode is faster and uses less resources. ",
-              default: true
+              description: "Run browser in headless mode (default: false). Headless mode is faster and uses less resources. ",
+              default: false
             }
           },
           required: ["keywords"]
         },
       },
       {
-        name: "linkedin_manage_posts",
+        name: "manage_posts",
         description: "Query and manage LinkedIn posts. Focused on keywords + descriptions. Process in small batches to manage context efficiently.",
         inputSchema: {
           type: "object",
@@ -127,8 +127,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
-        name: "start_vite_viewer",
-        description: "Start Vite-based post viewer (experimental React app with hot reload)",
+        name: "start_viewer",
+        description: "Start post viewer (React dashboard with hot reload)",
         inputSchema: {
           type: "object",
           properties: {},
@@ -136,8 +136,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
-        name: "stop_vite_viewer",
-        description: "Stop the running Vite viewer server",
+        name: "stop_viewer",
+        description: "Stop the running viewer server",
         inputSchema: {
           type: "object",
           properties: {},
@@ -145,7 +145,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
-        name: "linkedin_manage_filters",
+        name: "viewer_filters",
         description: "Read or update the LinkedIn post viewer filters. Filter state syncs between MCP and the React viewer UI.",
         inputSchema: {
           type: "object",
@@ -194,25 +194,25 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   try {
     switch (name) {
-      case "linkedin_auth":
+      case "auth":
         return await handleLinkedInAuth(params as any);
         
-      case "linkedin_search_posts":
+      case "search_posts":
         return await handleLinkedInSearchPosts(params as any);
         
-      case "linkedin_manage_posts":
+      case "manage_posts":
         return await handleLinkedInManagePosts(params as any);
         
-      case "start_vite_viewer":
+      case "start_viewer":
         const viteResult = await startViteViewer();
         return {
           content: [{
             type: "text",
-            text: `Vite Viewer started successfully!\n\n${viteResult.message}\n\nThe browser should have opened automatically. If not, visit: ${viteResult.url}\n\nThis is a proof of concept - hot reload is enabled!`
+            text: `Viewer started successfully!\n\n${viteResult.message}\n\nThe browser should have opened automatically. If not, visit: ${viteResult.url}\n\nHot reload is enabled!`
           }]
         };
         
-      case "stop_vite_viewer":
+      case "stop_viewer":
         const stopResult = stopViteViewer();
         return {
           content: [{
@@ -221,7 +221,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           }]
         };
         
-      case "linkedin_manage_filters":
+      case "viewer_filters":
         return await handleLinkedInManageFilters(params as any);
         
       default:

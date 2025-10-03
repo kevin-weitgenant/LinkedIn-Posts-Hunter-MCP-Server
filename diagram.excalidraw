@@ -438,10 +438,6 @@
       "isDeleted": false,
       "boundElements": [
         {
-          "id": "a7",
-          "type": "arrow"
-        },
-        {
           "id": "a8",
           "type": "arrow"
         },
@@ -1609,7 +1605,7 @@
       "version": 9,
       "versionNonce": 190804717,
       "isDeleted": false,
-      "boundElements": null,
+      "boundElements": [],
       "updated": 1759388728254,
       "link": null,
       "locked": false,
@@ -1759,7 +1755,7 @@
       "type": "arrow",
       "x": 662.526065246476,
       "y": 585.3928159313308,
-      "width": 49.666484217840434,
+      "width": 61.89563529739678,
       "height": 196.21829614815857,
       "angle": 0,
       "strokeColor": "#1e1e1e",
@@ -1775,8 +1771,8 @@
         "type": 2
       },
       "seed": 1430695697,
-      "version": 433,
-      "versionNonce": 1970516753,
+      "version": 449,
+      "versionNonce": 1240036828,
       "isDeleted": false,
       "boundElements": [
         {
@@ -1784,7 +1780,7 @@
           "type": "text"
         }
       ],
-      "updated": 1759387847624,
+      "updated": 1759445340087,
       "link": null,
       "locked": false,
       "points": [
@@ -1793,8 +1789,8 @@
           0
         ],
         [
-          -48.56012504349053,
-          -93.31827686008205
+          -61.89563529739678,
+          -91.47367236789455
         ],
         [
           -49.666484217840434,
@@ -1804,12 +1800,12 @@
       "lastCommittedPoint": null,
       "startBinding": {
         "elementId": "express",
-        "focus": -1.0871662856183775,
+        "focus": -1.0792473055923697,
         "gap": 19.32580411100491
       },
       "endBinding": {
         "elementId": "mcp",
-        "focus": -0.5816275603828707,
+        "focus": -0.6150798925686187,
         "gap": 1
       },
       "startArrowhead": "arrow",
@@ -1819,10 +1815,10 @@
     {
       "id": "Jo4GLkqpgPyIg1Z6GFI-w",
       "type": "text",
-      "x": 579.9018278576079,
-      "y": 452.42610157124875,
-      "width": 112.57992553710938,
-      "height": 50,
+      "x": 553.8159844534738,
+      "y": 479.57453907124875,
+      "width": 120.29991149902344,
+      "height": 25,
       "angle": 0,
       "strokeColor": "#1e1e1e",
       "backgroundColor": "#ffffff",
@@ -1835,21 +1831,21 @@
       "frameId": null,
       "roundness": null,
       "seed": 799057137,
-      "version": 15,
-      "versionNonce": 799982257,
+      "version": 23,
+      "versionNonce": 2048191588,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1759387715290,
+      "updated": 1759445335348,
       "link": null,
       "locked": false,
-      "text": "start react\ndashboard",
+      "text": "start viewer",
       "fontSize": 20,
       "fontFamily": 5,
       "textAlign": "center",
       "verticalAlign": "middle",
       "baseline": 30,
       "containerId": "iz2OcSUUnJ7BEqeZSHK7r",
-      "originalText": "start react dashboard",
+      "originalText": "start viewer",
       "autoResize": true,
       "lineHeight": 1.25,
       "index": "ai"
@@ -1875,8 +1871,8 @@
         "type": 2
       },
       "seed": 2093810111,
-      "version": 927,
-      "versionNonce": 1240435281,
+      "version": 929,
+      "versionNonce": 1391489884,
       "isDeleted": false,
       "boundElements": [
         {
@@ -1884,7 +1880,7 @@
           "type": "text"
         }
       ],
-      "updated": 1759387786408,
+      "updated": 1759445349545,
       "link": null,
       "locked": false,
       "points": [
@@ -1919,8 +1915,8 @@
     {
       "id": "XOUz-mbwgCp-HNx3M8zTZ",
       "type": "text",
-      "x": 695.019269670759,
-      "y": 273.67532746399286,
+      "x": 735.2934192475819,
+      "y": 258.2311695456986,
       "width": 129.55990600585938,
       "height": 25,
       "angle": 0,
@@ -1935,11 +1931,11 @@
       "frameId": null,
       "roundness": null,
       "seed": 1550086623,
-      "version": 40,
-      "versionNonce": 1857750385,
+      "version": 41,
+      "versionNonce": 2071336676,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1759387778388,
+      "updated": 1759445336233,
       "link": null,
       "locked": false,
       "text": "post manager",
