@@ -123,8 +123,8 @@ Read, update, or delete posts from the database with advanced filtering.
 **Usage:**
 ```
 "Show me posts I haven't applied to yet"
-"Mark post ID 42 as applied"
-"Delete all posts older than January 1st"
+"Delete all posts that arent about job opportunities"
+"Delete all posts that are only about senior-level positions"
 ```
 
 ### 4. `viewer_filters`
