@@ -178,23 +178,11 @@ Stop the running Vite development server.
 
 ---
 
-### Method 1: Download Pre-built .mcpb Package (Claude Desktop Only) 🎁
 
-**Works for:** Claude Desktop only
 
-**💡 Easiest method!** This is the simplest installation option - just one click! However, the `.mcpb` format is still relatively new and not yet widely adopted by the MCP community.
 
-1. **Download the latest `.mcpb` file** from the [Releases page](https://github.com/kevin-weitgenant/LinkedIn-Posts-Hunter-MCP-Server/releases)
 
-2. **Install with one click:**
-   - Double-click the `.mcpb` file, or
-   - Drag it onto the Claude Desktop app
-
-3. **Done!** Claude Desktop automatically configures everything for you.
-
----
-
-### Method 2: Using mcp.json Configuration (Recommended) ⭐
+### Method 1: Using mcp.json Configuration (Recommended) ⭐
 
 **Works for:** Cursor IDE and Claude Desktop
 
@@ -255,7 +243,7 @@ That's it! No need to clone the repository or manage local builds.
 
 ---
 
-### Method 3: Local Development Setup
+### Method 2: Local Development Setup
 
 For developers who want to modify the code or contribute:
 
@@ -410,4 +398,3 @@ Contributions are welcome! Feel free to open issues or submit pull requests.
 <div align="center">
  
 </div>
-
