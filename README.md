@@ -176,23 +176,70 @@ Stop the running Vite development server.
 
 ---
 
-### Method 1: Download Pre-built .mcpb Package (Claude Desktop Only) 🎁
 
-**Works for:** Claude Desktop only
 
-**💡 Easiest method!** This is the simplest installation option - just one click! However, the `.mcpb` format is still relatively new and not yet widely adopted by the MCP community.
 
-1. **Download the latest `.mcpb` file** from the [Releases page](https://github.com/kevin-weitgenant/LinkedIn-Posts-Hunter-MCP-Server/releases)
 
-2. **Install with one click:**
-   - Double-click the `.mcpb` file, or
-   - Drag it onto the Claude Desktop app
+### Method 1: Using mcp.json Configuration (Recommended) ⭐
 
-3. **Done!** Claude Desktop automatically configures everything for you.
+**Works for:** Cursor IDE and Claude Desktop
+
+This is the most reliable and widely-supported installation method.
+
+1. **Install globally:**
+   ```bash
+   npm install -g linkedin-posts-hunter-mcp
+   ```
+
+   **What you'll see:**
+   - Package download progress with visible feedback
+   - Dependency installation (~234 packages)
+   - Playwright Chromium browser download (~300MB)
+   - Installation typically completes in 1-3 minutes
+   
+   ✅ You'll know exactly when the installation is complete!
+
+2. **Add to your MCP configuration:**
+
+   **For Cursor IDE:**
+   
+   Open or create `mcp.json` at:
+   - **macOS/Linux:** `~/.cursor/mcp.json`
+   - **Windows:** `%USERPROFILE%\.cursor\mcp.json` (typically `C:\Users\YourName\.cursor\mcp.json`)
+   
+   Add this configuration:
+   ```json
+   {
+     "mcpServers": {
+       "linkedin-posts-hunter-mcp": {
+         "command": "linkedin-posts-hunter-mcp"
+       }
+     }
+   }
+   ```
+
+   **For Claude Desktop:**
+   
+   Open or create `claude_desktop_config.json` at:
+   - **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+   - **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+   
+   Add this configuration:
+   ```json
+   {
+     "mcpServers": {
+       "linkedin-posts-hunter-mcp": {
+         "command": "linkedin-posts-hunter-mcp"
+       }
+     }
+   }
+   ```
+
+3. **Restart your MCP client** (Cursor or Claude Desktop)
+
+That's it! No need to clone the repository or manage local builds.
 
 ---
-
-
 
 ### Method 2: Local Development Setup
 
@@ -349,4 +396,3 @@ Contributions are welcome! Feel free to open issues or submit pull requests.
 <div align="center">
  
 </div>
-
