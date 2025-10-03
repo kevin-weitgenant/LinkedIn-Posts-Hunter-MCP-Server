@@ -42,8 +42,10 @@
 
 **3. Visual Interface**
 - A separate tool launches a **React dashboard** that renders the scraped posts from your local database
-- The UI provides table/card views, advanced filtering, and quick actions (mark as applied,save, edit, delete, etc.)
-- Changes made in the React app are written to the local database
+- **Visualize all your scraped posts** in table or card views with profile images and engagement metrics
+- **Track your applications** by marking posts as "applied" or "saved for later" directly in the UI
+- **Quick actions** let you filter, sort, and manage posts with point-and-click simplicity
+- Changes made in the React app are written to the local database. And changes made through MCP commands are reflected in the UI.
 
 **4. Dual Control**
 - You can manage posts through **either** the React UI **or** through MCP tools like `manage_posts` and `viewer_filters`
@@ -301,22 +303,6 @@ For developers who want to modify the code or contribute:
 
 ---
 
-## 🚀 NPM Scripts
-
-| Script | Description |
-|--------|-------------|
-| `npm run dev` | Run the MCP server in development mode with tsx |
-| `npm run build` | Clean, compile TypeScript, build React client, and copy assets |
-| `npm run clean` | Remove the `build/` directory |
-| `npm run build-client` | Build the React dashboard (production mode) |
-| `npm run copy-client` | Copy built client assets to `build/` directory |
-| `npm run pack` | Create the `.mcpb` package file |
-| `npm run mcpb` | Full build + pack workflow for distribution |
-| `npm start` | Run the compiled MCP server from `build/` |
-| `npm run typecheck` | Type-check TypeScript without emitting files |
-| `npm run install:all` | Install dependencies for both server and client |
-
----
 
 ## 🎯 What You Can Do
 
@@ -337,7 +323,7 @@ For developers who want to modify the code or contribute:
 3. **Visual exploration:**
    ```
    User: "Open the post viewer"
-   AI: Launches React dashboard at http://localhost:5174
+   AI: Launches React dashboard(where you can see the scraped posts) at http://localhost:5174
    ```
 
 4. **Filter and manage:**
@@ -394,11 +380,11 @@ All your LinkedIn data is stored locally on your computer in the following direc
 
 The built-in web viewer (`start_viewer`) provides:
 
-- **📊 Table View**: Sortable columns with all post metadata
-- **🎴 Card View**: Visual cards with profile images and engagement metrics
-- **🔍 Advanced Filtering**: By keyword, date range, applied status, and IDs
-- **✅ Quick Actions**: Mark posts as applied directly from the UI
 - **🔄 Real-time Updates**: Filter state syncs between UI and MCP commands
+- **✅ Quick Actions**: Mark posts as applied directly from the UI
+- **🎴 Card View**: Visual cards with profile images and engagement metrics
+- **📊 Table View**: Sortable columns with all post metadata
+- **🔍 Filtering**: By keyword, date range, applied status, and IDs
 - **💅 Modern Design**: Built with React, TypeScript, TailwindCSS, and Vite
 
 ---
