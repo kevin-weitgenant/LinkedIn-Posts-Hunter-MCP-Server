@@ -58,9 +58,9 @@
 
 See LinkedIn Posts Hunter in action! Watch how to search, manage, and track LinkedIn job posts through your AI assistant.
 
-**📹 Demo Video:** [demo.mp4](./demo.mp4)
+[![LinkedIn Posts Hunter Demo](https://i.streamable.com/static/thumbnail/7/6/0/5/5/760555.jpg)](https://streamable.com/m6tvef)
 
-*Click to watch the full demo video showing the complete workflow from authentication to post management*
+*Click the image above to watch the complete workflow from authentication to post management*
 
 ---
 
