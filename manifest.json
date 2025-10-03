@@ -1,7 +1,7 @@
 {
   "manifest_version": "0.2",
   "name": "linkedin-posts-hunter-mcp",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "AI-powered LinkedIn job post search and tracking. Automate post scraping with Playwright, store locally in SQLite, and manage via a React dashboard or natural language commands.",
   "long_description": "LinkedIn Posts Hunter MCP is a Model Context Protocol server that provides AI-powered tools for automating LinkedIn job post search and management. Features include: Playwright-based browser automation with persistent authentication, local SQLite database storage for complete privacy, a modern React dashboard with advanced filtering and tracking capabilities, and dual control through either natural language AI commands or point-and-click UI. Search posts by keywords, track applications, manage data with filters by date/status/keywords, and visualize results in table or card views. All data stays on your machine - no external servers involved.",
   "author": {

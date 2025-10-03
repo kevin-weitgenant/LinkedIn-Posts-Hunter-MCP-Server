@@ -25,7 +25,7 @@
     "auth:run": "tsx scripts/run-with-auth.ts",
     "install:all": "npm install && cd src/client-vite && npm install && echo 'All dependencies(client vite included) installed successfully!'",
     "prepublishOnly": "npm run build",
-    "postinstall": "playwright install chromium"
+    "postinstall": "playwright install --with-deps chromium"
   },
   "keywords": [
     "mcp",
