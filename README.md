@@ -56,19 +56,11 @@
 
 ## 🎬 Video Demo
 
+**📹 [Download Local Demo Video](short%20video.mp4)**
 
+https://streamable.com/m6tvef?src=player-page-share
 
-<div align="center">
-  <video width="800" controls>
-    <source src="short video.mp4" type="video/mp4">
-    Your browser does not support the video tag.
-  </video>
-
-</div>
-
-**📹 [Watch Walkthrough](https://streamable.com/m6tvef?src=player-page-share)**
-
-*Click the link above to watch the complete workflow from authentication to post management*
+*Watch the complete workflow from authentication to post management*
 
 ---
 
