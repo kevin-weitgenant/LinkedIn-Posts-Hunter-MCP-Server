@@ -56,9 +56,7 @@
 
 ## 🎬 Video Demo
 
-**📹 [Download Local Demo Video](short%20video.mp4)**
-
-https://streamable.com/m6tvef?src=player-page-share
+https://github.com/user-attachments/assets/93f32db4-9ecf-4438-889f-ebe95b5b17e9
 
 *Watch the complete workflow from authentication to post management*
 
