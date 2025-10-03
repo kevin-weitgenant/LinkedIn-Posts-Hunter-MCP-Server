@@ -54,21 +54,19 @@
 
 ---
 
-## 📸 Screenshots
-
-<div align="center">
-  <img src="screenshot.png" alt="LinkedIn Posts Hunter Screenshot" width="800"/>
-  <p><em>Example workflow: Cleaning up LinkedIn posts by filtering out non-English content, senior-level positions, and non-job opportunities</em></p>
-  
-  <img src="screenshot2.png" alt="React UI Dashboard" width="800"/>
-  <p><em>React dashboard showing scraped LinkedIn posts with filtering and management capabilities</em></p>
-</div>
-
 ## 🎬 Video Demo
 
 See LinkedIn Posts Hunter in action! Watch how to search, manage, and track LinkedIn job posts through your AI assistant.
 
-**📹 [Watch Extended Demo Video](https://streamable.com/m6tvef?src=player-page-share)**
+<div align="center">
+  <video width="800" controls>
+    <source src="short video.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+
+</div>
+
+**📹 [Watch Walkthrough](https://streamable.com/m6tvef?src=player-page-share)**
 
 *Click the link above to watch the complete workflow from authentication to post management*
 
@@ -400,6 +398,16 @@ ISC
 ## 🤝 Contributing
 
 Contributions are welcome! Feel free to open issues or submit pull requests.
+
+## 🚀 Project Status
+
+This is an experimental project, quick and dirty.
+
+The scraping could definitely be optimized to be faster, the UI could be improved as well.
+
+But at its is, is already somewhat useful.
+
+Feel free to contribute.
 
 ---
 
