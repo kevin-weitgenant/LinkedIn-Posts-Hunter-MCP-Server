@@ -58,8 +58,9 @@
 
 See LinkedIn Posts Hunter in action! Watch how to search, manage, and track LinkedIn job posts through your AI assistant.
 
-[![Watch Demo](https://img.youtube.com/vi/VIDEO_ID/maxresdefault.jpg)](https://youtube.com/watch?v=VIDEO_ID)
-*Click to watch the full demo video*
+**📹 Demo Video:** [demo.mp4](./demo.mp4)
+
+*Click to watch the full demo video showing the complete workflow from authentication to post management*
 
 ---
 
@@ -98,6 +99,7 @@ Search LinkedIn posts by keywords and save results to the database.
 **Parameters:**
 - `keywords`: string (e.g., "Python developer remote")
 - `pagination`: number (1-10, default: 3)
+- `headless`: boolean (default: false) - show the browser window (default: false)
 
 **Usage:**
 ```
